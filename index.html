@@ -1,0 +1,1529 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mathe-Funktionszeichner</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --text: #162033;
+      --muted: #667085;
+      --line: #d0d5dd;
+      --grid: #eaecf0;
+      --axis: #98a2b3;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --danger: #b42318;
+      --ok: #067647;
+      --shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top left, #e0ecff, transparent 35%), var(--bg);
+      min-height: 100vh;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 28px));
+      margin: 28px auto;
+    }
+
+    .hero {
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: clamp(1.7rem, 3vw, 2.5rem);
+      margin: 0 0 8px;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(208, 213, 221, 0.75);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .print-header {
+      display: none;
+      padding: 18px 16px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .print-header h2 {
+      margin: 0 0 8px;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+    }
+
+    .print-details {
+      margin: 4px 0;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .print-details strong {
+      color: var(--text);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1.5fr repeat(2, minmax(96px, 130px)) auto;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      align-items: end;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font: inherit;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      background: #eef4ff;
+      color: var(--accent-dark);
+      transition: transform 0.08s ease, background 0.15s ease;
+    }
+
+    button:hover { background: #dbeafe; }
+    button:active { transform: translateY(1px); }
+
+    .primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .primary:hover { background: var(--accent-dark); }
+
+    .options {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 0 16px 14px;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .checkbox {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .scale-hint {
+      flex-basis: 100%;
+      line-height: 1.4;
+    }
+
+    .print-graph {
+      display: none;
+    }
+
+    .examples {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 0 16px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .examples span {
+      color: var(--muted);
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      margin-right: 2px;
+    }
+
+    .example-button {
+      padding: 8px 10px;
+      background: #f2f4f7;
+      color: #344054;
+      font-weight: 650;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      background: #fff;
+      min-height: 540px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 540px;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    canvas:active { cursor: grabbing; }
+
+    .status {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
+    .status strong { color: var(--text); }
+    .status .error { color: var(--danger); font-weight: 700; }
+    .status .ok { color: var(--ok); font-weight: 700; }
+
+    .help {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .help-card {
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(208, 213, 221, 0.75);
+      border-radius: 16px;
+      padding: 14px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .help-card strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    code {
+      background: #f2f4f7;
+      border: 1px solid #eaecf0;
+      padding: 1px 5px;
+      border-radius: 6px;
+      color: #344054;
+    }
+
+    @media (max-width: 850px) {
+      .controls { grid-template-columns: 1fr 1fr; }
+      .function-label { grid-column: 1 / -1; }
+      .button-row { grid-column: 1 / -1; }
+      .help { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      main { width: min(100% - 18px, 1120px); margin: 14px auto; }
+      .controls { grid-template-columns: 1fr; }
+      canvas { height: 460px; }
+      .canvas-wrap { min-height: 460px; }
+      .status { flex-direction: column; }
+    }
+
+    @media print {
+      @page { margin: 12mm; }
+
+      body {
+        background: #fff;
+        min-height: auto;
+      }
+
+      main {
+        width: 100%;
+        margin: 0;
+      }
+
+      .hero,
+      .controls,
+      .options,
+      .examples,
+      .help {
+        display: none !important;
+      }
+
+      .panel {
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        background: #fff;
+        overflow: visible;
+      }
+
+      .print-header {
+        display: block;
+        padding: 0 0 8mm;
+        border-bottom: 0;
+      }
+
+      .canvas-wrap {
+        min-height: auto;
+        border: 1px solid #d0d5dd;
+        page-break-inside: avoid;
+      }
+
+      canvas {
+        display: none;
+      }
+
+      /* Das Druckbild behält sein Seitenverhältnis: auch auf Papier echte 1:1-Einheiten. */
+      .print-graph {
+        display: block;
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 180mm;
+        margin: 0 auto;
+      }
+
+      .status {
+        padding: 4mm 0 0;
+        border-top: 0;
+        font-size: 10pt;
+        color: #344054;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <h1>Mathe-Funktionszeichner</h1>
+      <p class="subtitle">Gib eine Funktion ein, zum Beispiel <code>sin(x)</code>, <code>x^2 - 4</code> oder <code>1/x</code>. Der Graph wird automatisch passend skaliert.</p>
+    </section>
+
+    <section class="panel" aria-label="Funktionszeichner">
+      <div class="print-header" aria-hidden="true">
+        <h2>Funktionsgraph</h2>
+        <div class="print-details"><strong>Funktion:</strong> <span id="printFunction">f(x) = sin(x)</span></div>
+        <div class="print-details"><strong>Bereich:</strong> <span id="printRange"></span></div>
+        <div class="print-details"><strong>Maßstab:</strong> <span id="printScale"></span></div>
+        <div class="print-details"><strong>Hinweis:</strong> <span id="printMessage"></span></div>
+      </div>
+
+      <div class="controls">
+        <label class="function-label">
+          Funktion f(x)
+          <input id="functionInput" type="text" value="sin(x)" autocomplete="off" spellcheck="false" />
+        </label>
+
+        <label>
+          x von
+          <input id="xMinInput" type="text" value="-10" inputmode="decimal" />
+        </label>
+
+        <label>
+          x bis
+          <input id="xMaxInput" type="text" value="10" inputmode="decimal" />
+        </label>
+
+        <div class="button-row">
+          <button id="drawButton" class="primary">Zeichnen</button>
+          <button id="autoButton">Auto-Scale</button>
+          <button id="resetButton">Reset</button>
+          <button id="printButton">Drucken</button>
+        </div>
+      </div>
+
+      <div class="options">
+        <label class="checkbox">
+          <input id="autoYCheckbox" type="checkbox" checked />
+          y-Achse automatisch skalieren
+        </label>
+        <label class="checkbox" title="Eine Einheit auf der x-Achse ist genauso lang wie eine Einheit auf der y-Achse.">
+          <input id="equalScaleCheckbox" type="checkbox" aria-describedby="equalScaleHint" />
+          Gleicher Maßstab für x und y (1:1)
+        </label>
+        <span>Mausrad: zoomen · Ziehen: verschieben · Doppelklick: Auto-Scale</span>
+        <span id="equalScaleHint" class="scale-hint" hidden>1:1 bedeutet: Eine Einheit ist auf beiden Achsen gleich lang. Die Ansicht wird dafür bei Bedarf erweitert; der eingegebene x-Bereich bleibt der Ausgangsbereich für Auto-Scale.</span>
+      </div>
+
+      <div class="examples" id="examples"></div>
+
+      <div class="canvas-wrap">
+        <canvas id="graphCanvas" aria-label="Graph der Funktion"></canvas>
+        <img id="printGraphImage" class="print-graph" alt="Graph der Funktion" />
+      </div>
+
+      <div class="status">
+        <div id="message"><span class="ok">Bereit.</span></div>
+        <div id="rangeInfo"></div>
+      </div>
+    </section>
+
+    <section class="help" aria-label="Hilfe">
+      <div class="help-card"><strong>Erlaubte Zeichen</strong> Zahlen, <code>x</code>, Klammern und die Rechenzeichen <code>+ - * / ^</code>. Beispiel: <code>2*x + 3</code>.</div>
+      <div class="help-card"><strong>Funktionen</strong> <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>sqrt</code>, <code>abs</code>, <code>ln</code>, <code>log</code>, <code>exp</code>. Beispiel: <code>sqrt(x)</code>.</div>
+      <div class="help-card"><strong>Konstanten</strong> <code>pi</code> oder <code>π</code> für Pi und <code>e</code> für Eulers Zahl. Dezimalzahlen gehen mit Punkt oder Komma.</div>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+
+    const canvas = document.getElementById("graphCanvas");
+    const ctx = canvas.getContext("2d");
+    const functionInput = document.getElementById("functionInput");
+    const xMinInput = document.getElementById("xMinInput");
+    const xMaxInput = document.getElementById("xMaxInput");
+    const drawButton = document.getElementById("drawButton");
+    const autoButton = document.getElementById("autoButton");
+    const resetButton = document.getElementById("resetButton");
+    const printButton = document.getElementById("printButton");
+    const autoYCheckbox = document.getElementById("autoYCheckbox");
+    const equalScaleCheckbox = document.getElementById("equalScaleCheckbox");
+    const equalScaleHint = document.getElementById("equalScaleHint");
+    const message = document.getElementById("message");
+    const rangeInfo = document.getElementById("rangeInfo");
+    const examples = document.getElementById("examples");
+    const printFunction = document.getElementById("printFunction");
+    const printRange = document.getElementById("printRange");
+    const printScale = document.getElementById("printScale");
+    const printGraphImage = document.getElementById("printGraphImage");
+    const printMessage = document.getElementById("printMessage");
+
+    const FUNCTIONS = {
+      sin: Math.sin,
+      cos: Math.cos,
+      tan: Math.tan,
+      asin: Math.asin,
+      acos: Math.acos,
+      atan: Math.atan,
+      sqrt: Math.sqrt,
+      abs: Math.abs,
+      ln: Math.log,
+      log: Math.log10,
+      exp: Math.exp
+    };
+
+    const CONSTANTS = {
+      pi: Math.PI,
+      e: Math.E
+    };
+
+    const EXAMPLE_FUNCTIONS = [
+      "sin(x)",
+      "cos(x)",
+      "x^2 - 4",
+      "24x^2/x",
+      "(x^2 - 1)/(x - 1)",
+      "1/x",
+      "1/(x - 2)",
+      "sqrt(x)",
+      "abs(x)",
+      "tan(x)",
+      "exp(-0.2*x)*sin(3*x)",
+      "ln(x)"
+    ];
+
+    let state = null;
+    // state enthält den Ausgangsbereich, view den tatsächlich sichtbaren Ausschnitt.
+    // So vergrößert wiederholtes Auto-Scale nicht immer weiter den x-Bereich.
+    let view = null;
+    let width = 0;
+    let height = 0;
+    let isDragging = false;
+    let lastPointer = null;
+
+    function showMessage(text, type = "ok") {
+      message.innerHTML = `<span class="${type}">${escapeHtml(text)}</span>`;
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function parseGermanNumber(text) {
+      const value = Number(String(text).trim().replace(",", "."));
+      if (!Number.isFinite(value)) throw new Error("Bitte gültige Zahlen für den x-Bereich eingeben.");
+      return value;
+    }
+
+    function tokenize(input) {
+      const tokens = [];
+      let s = String(input)
+        .toLowerCase()
+        .replaceAll("π", "pi")
+        .replace(/(\d),(\d)/g, "$1.$2")
+        .replace(/\s+/g, "");
+
+      if (s.length === 0) throw new Error("Bitte eine Funktion eingeben.");
+
+      let i = 0;
+      while (i < s.length) {
+        const ch = s[i];
+
+        if ((ch >= "0" && ch <= "9") || ch === ".") {
+          const start = i;
+          i++;
+          while (i < s.length && ((s[i] >= "0" && s[i] <= "9") || s[i] === ".")) i++;
+
+          if (i < s.length && s[i] === "e") {
+            const exponentStart = i;
+            let j = i + 1;
+            if (s[j] === "+" || s[j] === "-") j++;
+            let hasDigit = false;
+            while (j < s.length && s[j] >= "0" && s[j] <= "9") {
+              hasDigit = true;
+              j++;
+            }
+            if (hasDigit) i = j;
+            else i = exponentStart;
+          }
+
+          const raw = s.slice(start, i);
+          const value = Number(raw);
+          if (!Number.isFinite(value)) throw new Error(`Ungültige Zahl: ${raw}`);
+          tokens.push({ type: "number", value });
+          continue;
+        }
+
+        if (ch >= "a" && ch <= "z") {
+          const start = i;
+          i++;
+          while (i < s.length && s[i] >= "a" && s[i] <= "z") i++;
+          const name = s.slice(start, i);
+          if (name !== "x" && !(name in FUNCTIONS) && !(name in CONSTANTS)) {
+            throw new Error(`Unbekannter Ausdruck: ${name}`);
+          }
+          tokens.push({ type: "name", value: name });
+          continue;
+        }
+
+        if ("+-*/^".includes(ch)) {
+          tokens.push({ type: "operator", value: ch });
+          i++;
+          continue;
+        }
+
+        if (ch === "(") {
+          tokens.push({ type: "leftParen", value: ch });
+          i++;
+          continue;
+        }
+
+        if (ch === ")") {
+          tokens.push({ type: "rightParen", value: ch });
+          i++;
+          continue;
+        }
+
+        throw new Error(`Dieses Zeichen wird nicht erkannt: ${ch}`);
+      }
+
+      return insertImplicitMultiplication(tokens);
+    }
+
+    function insertImplicitMultiplication(tokens) {
+      const result = [];
+      for (let i = 0; i < tokens.length; i++) {
+        const current = tokens[i];
+        const next = tokens[i + 1];
+        result.push(current);
+
+        if (!next) continue;
+
+        const currentEndsValue = current.type === "number" ||
+          current.type === "rightParen" ||
+          (current.type === "name" && (current.value === "x" || current.value in CONSTANTS));
+
+        const nextStartsValue = next.type === "number" ||
+          next.type === "leftParen" ||
+          next.type === "name";
+
+        const functionCall = current.type === "name" && current.value in FUNCTIONS && next.type === "leftParen";
+
+        if (currentEndsValue && nextStartsValue && !functionCall) {
+          result.push({ type: "operator", value: "*" });
+        }
+      }
+      return result;
+    }
+
+    function makeNode(evaluator, denominators = [], constantValue = null) {
+      return { evaluator, denominators, constantValue };
+    }
+
+    function mergeDenominators(...nodes) {
+      return nodes.flatMap(node => node.denominators || []);
+    }
+
+    function constantFromOperation(left, right, operator) {
+      if (left.constantValue === null || right.constantValue === null) return null;
+      if (operator === "+") return left.constantValue + right.constantValue;
+      if (operator === "-") return left.constantValue - right.constantValue;
+      if (operator === "*") return left.constantValue * right.constantValue;
+      if (operator === "/") return left.constantValue / right.constantValue;
+      if (operator === "^") return Math.pow(left.constantValue, right.constantValue);
+      return null;
+    }
+
+    function compileExpression(input) {
+      const tokens = tokenize(input);
+      let position = 0;
+
+      function peek() {
+        return tokens[position];
+      }
+
+      function consume() {
+        return tokens[position++];
+      }
+
+      function match(type, value = null) {
+        const token = peek();
+        if (!token || token.type !== type) return false;
+        if (value !== null && token.value !== value) return false;
+        position++;
+        return true;
+      }
+
+      function expect(type, value = null, text = "Unerwartetes Ende der Eingabe.") {
+        if (!match(type, value)) throw new Error(text);
+      }
+
+      function parseExpression() {
+        return parseAddition();
+      }
+
+      function parseAddition() {
+        let node = parseMultiplication();
+        while (true) {
+          if (match("operator", "+")) {
+            const left = node;
+            const right = parseMultiplication();
+            node = makeNode(
+              x => left.evaluator(x) + right.evaluator(x),
+              mergeDenominators(left, right),
+              constantFromOperation(left, right, "+")
+            );
+          } else if (match("operator", "-")) {
+            const left = node;
+            const right = parseMultiplication();
+            node = makeNode(
+              x => left.evaluator(x) - right.evaluator(x),
+              mergeDenominators(left, right),
+              constantFromOperation(left, right, "-")
+            );
+          } else {
+            break;
+          }
+        }
+        return node;
+      }
+
+      function parseMultiplication() {
+        let node = parseUnary();
+        while (true) {
+          if (match("operator", "*")) {
+            const left = node;
+            const right = parseUnary();
+            node = makeNode(
+              x => left.evaluator(x) * right.evaluator(x),
+              mergeDenominators(left, right),
+              constantFromOperation(left, right, "*")
+            );
+          } else if (match("operator", "/")) {
+            const left = node;
+            const right = parseUnary();
+            node = makeNode(
+              x => left.evaluator(x) / right.evaluator(x),
+              [...mergeDenominators(left, right), right.evaluator],
+              constantFromOperation(left, right, "/")
+            );
+          } else {
+            break;
+          }
+        }
+        return node;
+      }
+
+      function parseUnary() {
+        if (match("operator", "+")) return parseUnary();
+        if (match("operator", "-")) {
+          const value = parseUnary();
+          return makeNode(
+            x => -value.evaluator(x),
+            mergeDenominators(value),
+            value.constantValue === null ? null : -value.constantValue
+          );
+        }
+        return parsePower();
+      }
+
+      function parsePower() {
+        let node = parsePrimary();
+        if (match("operator", "^")) {
+          const base = node;
+          const exponent = parseUnary();
+          const extraDenominators = exponent.constantValue !== null && exponent.constantValue < 0 ? [base.evaluator] : [];
+          node = makeNode(
+            x => Math.pow(base.evaluator(x), exponent.evaluator(x)),
+            [...mergeDenominators(base, exponent), ...extraDenominators],
+            constantFromOperation(base, exponent, "^")
+          );
+        }
+        return node;
+      }
+
+      function parsePrimary() {
+        const token = consume();
+        if (!token) throw new Error("Unerwartetes Ende der Eingabe.");
+
+        if (token.type === "number") {
+          const value = token.value;
+          return makeNode(() => value, [], value);
+        }
+
+        if (token.type === "name") {
+          const name = token.value;
+
+          if (name === "x") return makeNode(x => x, [], null);
+
+          if (name in CONSTANTS) {
+            const value = CONSTANTS[name];
+            return makeNode(() => value, [], value);
+          }
+
+          if (name in FUNCTIONS) {
+            expect("leftParen", null, `Nach ${name} muss eine Klammer stehen, z. B. ${name}(x).`);
+            const argument = parseExpression();
+            expect("rightParen", null, `Bei ${name}(...) fehlt eine schließende Klammer.`);
+            const functionValue = FUNCTIONS[name];
+            const constantValue = argument.constantValue === null ? null : functionValue(argument.constantValue);
+            return makeNode(
+              x => functionValue(argument.evaluator(x)),
+              mergeDenominators(argument),
+              Number.isFinite(constantValue) ? constantValue : null
+            );
+          }
+        }
+
+        if (token.type === "leftParen") {
+          const node = parseExpression();
+          expect("rightParen", null, "Es fehlt eine schließende Klammer.");
+          return node;
+        }
+
+        throw new Error("Die Funktion konnte an einer Stelle nicht gelesen werden.");
+      }
+
+      const root = parseExpression();
+      if (position < tokens.length) throw new Error("Nach dem Ende der Funktion stehen noch ungültige Zeichen.");
+      return {
+        evaluator: root.evaluator,
+        denominators: root.denominators || []
+      };
+    }
+
+    function sampleFunction(evaluator, xMin, xMax, count) {
+      const points = [];
+      const finiteY = [];
+
+      for (let i = 0; i <= count; i++) {
+        const x = xMin + (i / count) * (xMax - xMin);
+        let y;
+        try {
+          y = evaluator(x);
+        } catch {
+          y = NaN;
+        }
+
+        const valid = Number.isFinite(y) && Math.abs(y) < 1e12;
+        points.push({ x, y, valid });
+        if (valid) finiteY.push(y);
+      }
+
+      return { points, finiteY };
+    }
+
+
+    function evaluateFinite(fn, x, maxAbs = Infinity) {
+      try {
+        const y = fn(x);
+        if (!Number.isFinite(y)) return NaN;
+        if (Math.abs(y) > maxAbs) return NaN;
+        return y;
+      } catch {
+        return NaN;
+      }
+    }
+
+    function addUniqueCandidate(candidates, x, source, tolerance) {
+      if (!Number.isFinite(x)) return;
+      const normalized = Math.abs(x) < tolerance ? 0 : x;
+      const existing = candidates.find(candidate => Math.abs(candidate.x - normalized) <= tolerance);
+      if (existing) {
+        if (source === "denominator") existing.source = "denominator";
+        return;
+      }
+      candidates.push({ x: normalized, source });
+    }
+
+    function bisectionRoot(fn, left, right) {
+      let a = left;
+      let b = right;
+      let fa = evaluateFinite(fn, a);
+      let fb = evaluateFinite(fn, b);
+
+      if (!Number.isFinite(fa) || !Number.isFinite(fb)) return (a + b) / 2;
+      if (Math.abs(fa) < 1e-12) return a;
+      if (Math.abs(fb) < 1e-12) return b;
+
+      for (let i = 0; i < 70; i++) {
+        const middle = (a + b) / 2;
+        const fm = evaluateFinite(fn, middle);
+        if (!Number.isFinite(fm)) return middle;
+        if (Math.abs(fm) < 1e-12 || Math.abs(b - a) < 1e-12) return middle;
+
+        if (fa * fm <= 0) {
+          b = middle;
+          fb = fm;
+        } else {
+          a = middle;
+          fa = fm;
+        }
+      }
+
+      return (a + b) / 2;
+    }
+
+    function candidateStepForRange(xRange) {
+      if (xRange <= 5) return 0.25;
+      if (xRange <= 20) return 0.5;
+      if (xRange <= 100) return 1;
+      return niceStep(xRange, 80);
+    }
+
+    function collectSpecialPointCandidates(evaluator, denominators, xMin, xMax) {
+      const candidates = [];
+      const xRange = xMax - xMin;
+      const tolerance = Math.max(1e-9, Math.abs(xRange) * 1e-7);
+      const scanCount = Math.min(2600, Math.max(500, Math.floor((width || 900) * 1.2)));
+      const zeroTolerance = 1e-9;
+
+      for (const denominator of denominators || []) {
+        let previousX = xMin;
+        let previousY = evaluateFinite(denominator, previousX);
+
+        if (Number.isFinite(previousY) && Math.abs(previousY) < zeroTolerance) {
+          addUniqueCandidate(candidates, previousX, "denominator", tolerance);
+        }
+
+        for (let i = 1; i <= scanCount; i++) {
+          const x = xMin + (i / scanCount) * xRange;
+          const y = evaluateFinite(denominator, x);
+
+          if (Number.isFinite(y) && Math.abs(y) < zeroTolerance) {
+            addUniqueCandidate(candidates, x, "denominator", tolerance);
+          }
+
+          if (Number.isFinite(previousY) && Number.isFinite(y) && previousY * y < 0) {
+            addUniqueCandidate(candidates, bisectionRoot(denominator, previousX, x), "denominator", tolerance);
+          }
+
+          previousX = x;
+          previousY = y;
+        }
+      }
+
+      const step = candidateStepForRange(xRange);
+      const first = Math.ceil(xMin / step) * step;
+      for (let x = first; x <= xMax + step * 0.5; x += step) {
+        const roundedX = Number(x.toPrecision(14));
+        const y = evaluateFinite(evaluator, roundedX);
+        if (!Number.isFinite(y)) addUniqueCandidate(candidates, roundedX, "evaluator", tolerance);
+
+        for (const denominator of denominators || []) {
+          const denominatorValue = evaluateFinite(denominator, roundedX);
+          if (Number.isFinite(denominatorValue) && Math.abs(denominatorValue) < zeroTolerance) {
+            addUniqueCandidate(candidates, roundedX, "denominator", tolerance);
+          }
+        }
+      }
+
+      return candidates
+        .filter(candidate => candidate.x >= xMin - tolerance && candidate.x <= xMax + tolerance)
+        .sort((a, b) => a.x - b.x);
+    }
+
+    function classifySpecialPoint(candidate, evaluator, xMin, xMax, yMin, yMax) {
+      const x0 = candidate.x;
+      const xRange = xMax - xMin;
+      const yRange = Math.max(1e-9, yMax - yMin);
+      const yAt = evaluateFinite(evaluator, x0, 1e10);
+
+      // Wenn der Funktionswert wirklich existiert und der Punkt nicht aus einem Nenner stammt,
+      // ist es keine Definitionslücke.
+      if (Number.isFinite(yAt) && candidate.source !== "denominator") return null;
+
+      const baseDelta = Math.max(xRange / 800, 1e-7 * Math.max(1, Math.abs(x0)));
+      const deltas = [baseDelta, baseDelta / 4, baseDelta / 16, baseDelta / 64];
+      let best = null;
+
+      for (const delta of deltas) {
+        if (x0 - delta < xMin || x0 + delta > xMax) continue;
+        const leftY = evaluateFinite(evaluator, x0 - delta, 1e14);
+        const rightY = evaluateFinite(evaluator, x0 + delta, 1e14);
+        if (Number.isFinite(leftY) && Number.isFinite(rightY)) {
+          best = { leftY, rightY, delta };
+        }
+      }
+
+      if (!best) return null;
+
+      const averageY = (best.leftY + best.rightY) / 2;
+      const difference = Math.abs(best.leftY - best.rightY);
+      const maxAbs = Math.max(Math.abs(best.leftY), Math.abs(best.rightY));
+      const visibleScale = Math.max(1, Math.abs(yMin), Math.abs(yMax), yRange);
+
+      if (maxAbs > Math.max(visibleScale * 6, 100) || difference > yRange * 1.5) {
+        return { type: "asymptote", x: x0 };
+      }
+
+      const holeTolerance = Math.max(yRange * 0.035, Math.abs(averageY) * 0.04, 0.04);
+      if (difference <= holeTolerance) {
+        return { type: "hole", x: x0, y: averageY };
+      }
+
+      return null;
+    }
+
+    function findSpecialPoints(evaluator, denominators, xMin, xMax, yMin, yMax) {
+      const rawCandidates = collectSpecialPointCandidates(evaluator, denominators, xMin, xMax);
+      const xRange = xMax - xMin;
+      const tolerance = Math.max(1e-8, Math.abs(xRange) * 1e-6);
+      const result = [];
+
+      for (const candidate of rawCandidates) {
+        const point = classifySpecialPoint(candidate, evaluator, xMin, xMax, yMin, yMax);
+        if (!point) continue;
+        const existing = result.find(item => item.type === point.type && Math.abs(item.x - point.x) <= tolerance);
+        if (!existing) result.push(point);
+      }
+
+      return result;
+    }
+
+    function specialPointMessage(points) {
+      if (!points || points.length === 0) return "";
+
+      const holes = points.filter(point => point.type === "hole");
+      const asymptotes = points.filter(point => point.type === "asymptote");
+      const parts = [];
+
+      if (holes.length > 0) {
+        const text = holes.slice(0, 4).map(point => `x = ${formatNumber(point.x)}`).join(", ");
+        parts.push(`${holes.length === 1 ? "Lücke" : "Lücken"} bei ${text}${holes.length > 4 ? " …" : ""}`);
+      }
+
+      if (asymptotes.length > 0) {
+        const text = asymptotes.slice(0, 4).map(point => `x = ${formatNumber(point.x)}`).join(", ");
+        parts.push(`${asymptotes.length === 1 ? "Polstelle" : "Polstellen"} bei ${text}${asymptotes.length > 4 ? " …" : ""}`);
+      }
+
+      return parts.join(" · ");
+    }
+
+    function percentile(sortedValues, p) {
+      if (sortedValues.length === 0) return NaN;
+      const index = (sortedValues.length - 1) * p;
+      const lower = Math.floor(index);
+      const upper = Math.ceil(index);
+      if (lower === upper) return sortedValues[lower];
+      const weight = index - lower;
+      return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
+    }
+
+    function autoYRange(finiteY) {
+      if (finiteY.length < 2) throw new Error("Für diesen x-Bereich gibt es zu wenige gültige y-Werte.");
+
+      const sorted = [...finiteY].sort((a, b) => a - b);
+      const rawMin = sorted[0];
+      const rawMax = sorted[sorted.length - 1];
+      let yMin = percentile(sorted, 0.02);
+      let yMax = percentile(sorted, 0.98);
+
+      if (!Number.isFinite(yMin) || !Number.isFinite(yMax)) {
+        yMin = rawMin;
+        yMax = rawMax;
+      }
+
+      // Normalerweise wird der ganze Wertebereich genutzt.
+      // Nur bei sehr großen Ausreißern, z. B. in der Nähe von Polstellen,
+      // schneiden wir die äußersten 2 % ab, damit der Graph lesbar bleibt.
+      const rawRange = rawMax - rawMin;
+      const percentileRange = yMax - yMin;
+      if (Number.isFinite(rawRange) && Number.isFinite(percentileRange) && rawRange <= percentileRange * 3.2) {
+        yMin = rawMin;
+        yMax = rawMax;
+      }
+
+      if (Math.abs(yMax - yMin) < 1e-9) {
+        const center = (yMin + yMax) / 2;
+        const pad = Math.max(1, Math.abs(center) * 0.25);
+        return { yMin: center - pad, yMax: center + pad };
+      }
+
+      const range = yMax - yMin;
+      const padding = range * 0.14;
+      return { yMin: yMin - padding, yMax: yMax + padding };
+    }
+
+    function niceStep(range, targetTicks) {
+      const rough = Math.abs(range) / Math.max(1, targetTicks);
+      if (!Number.isFinite(rough) || rough <= 0) return 1;
+      const exponent = Math.floor(Math.log10(rough));
+      const power = Math.pow(10, exponent);
+      const factor = rough / power;
+      if (factor < 1.5) return 1 * power;
+      if (factor < 3.5) return 2 * power;
+      if (factor < 7.5) return 5 * power;
+      return 10 * power;
+    }
+
+    function formatNumber(value) {
+      if (Math.abs(value) < 1e-11) return "0";
+      const abs = Math.abs(value);
+      if (abs >= 10000 || abs < 0.001) {
+        return value.toExponential(1).replace(".0e", "e").replace(".", ",");
+      }
+      return Number(value.toPrecision(6)).toString().replace(".", ",");
+    }
+
+    function getViewBounds() {
+      if (!state) return null;
+      let { xMin, xMax, yMin, yMax } = state;
+
+      if (equalScaleCheckbox.checked && width > 0 && height > 0) {
+        const xRange = xMax - xMin;
+        const yRange = yMax - yMin;
+        // Gleich viele Koordinateneinheiten pro Bildschirmpixel auf beiden Achsen.
+        // Nur erweitern, nicht beschneiden: Der bisherige Ausschnitt bleibt sichtbar.
+        const unitsPerPixel = Math.max(xRange / width, yRange / height);
+        const centerX = xMin + xRange / 2;
+        const centerY = yMin + yRange / 2;
+        const halfX = unitsPerPixel * width / 2;
+        const halfY = unitsPerPixel * height / 2;
+        xMin = centerX - halfX;
+        xMax = centerX + halfX;
+        yMin = centerY - halfY;
+        yMax = centerY + halfY;
+      }
+
+      return { xMin, xMax, yMin, yMax };
+    }
+
+    function scaleDescription() {
+      return equalScaleCheckbox.checked
+        ? "Gleich (1:1) – eine Einheit ist auf beiden Achsen gleich lang."
+        : "x- und y-Achse unabhängig skaliert.";
+    }
+
+    function xToPx(x) {
+      return ((x - view.xMin) / (view.xMax - view.xMin)) * width;
+    }
+
+    function yToPx(y) {
+      return height - ((y - view.yMin) / (view.yMax - view.yMin)) * height;
+    }
+
+    function pxToX(px) {
+      return view.xMin + (px / width) * (view.xMax - view.xMin);
+    }
+
+    function pxToY(py) {
+      return view.yMax - (py / height) * (view.yMax - view.yMin);
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      // Im Drucklayout ist das Canvas ausgeblendet; das Druckbild bleibt unverändert.
+      if (rect.width <= 0 || rect.height <= 0) return;
+      const dpr = window.devicePixelRatio || 1;
+      width = rect.width;
+      height = rect.height;
+      canvas.width = Math.max(1, Math.round(width * dpr));
+      canvas.height = Math.max(1, Math.round(height * dpr));
+      ctx.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
+      drawCanvas();
+    }
+
+    function drawCanvas() {
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+
+      if (!state) return;
+      view = getViewBounds();
+
+      state.specialPoints = findSpecialPoints(
+        state.evaluator,
+        state.denominators || [],
+        view.xMin,
+        view.xMax,
+        view.yMin,
+        view.yMax
+      );
+
+      drawGrid();
+      drawFunctionLine();
+      drawSpecialPoints();
+      updateRangeInfo();
+    }
+
+    function drawGrid() {
+      const xRange = view.xMax - view.xMin;
+      const yRange = view.yMax - view.yMin;
+      const xStep = niceStep(xRange, width / 95);
+      // Im 1:1-Modus dieselbe Schrittweite: Das Raster besteht aus Quadraten.
+      const yStep = equalScaleCheckbox.checked ? xStep : niceStep(yRange, height / 72);
+
+      ctx.save();
+      ctx.lineWidth = 1;
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.textBaseline = "top";
+
+      const firstX = Math.ceil(view.xMin / xStep) * xStep;
+      for (let x = firstX; x <= view.xMax + xStep * 0.5; x += xStep) {
+        const px = xToPx(x);
+        ctx.strokeStyle = Math.abs(x) < xStep * 1e-7 ? "#98a2b3" : "#eaecf0";
+        ctx.beginPath();
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, height);
+        ctx.stroke();
+
+        ctx.fillStyle = "#667085";
+        const labelY = view.yMin <= 0 && view.yMax >= 0 ? Math.min(height - 18, Math.max(4, yToPx(0) + 4)) : height - 18;
+        if (px > 4 && px < width - 25) ctx.fillText(formatNumber(x), px + 4, labelY);
+      }
+
+      const firstY = Math.ceil(view.yMin / yStep) * yStep;
+      for (let y = firstY; y <= view.yMax + yStep * 0.5; y += yStep) {
+        const py = yToPx(y);
+        ctx.strokeStyle = Math.abs(y) < yStep * 1e-7 ? "#98a2b3" : "#eaecf0";
+        ctx.beginPath();
+        ctx.moveTo(0, py);
+        ctx.lineTo(width, py);
+        ctx.stroke();
+
+        ctx.fillStyle = "#667085";
+        const labelX = view.xMin <= 0 && view.xMax >= 0 ? Math.min(width - 70, Math.max(6, xToPx(0) + 6)) : 6;
+        if (py > 4 && py < height - 16) ctx.fillText(formatNumber(y), labelX, py + 4);
+      }
+
+      ctx.restore();
+    }
+
+    function drawFunctionLine() {
+      const sampleCount = Math.max(900, Math.floor(width * 2.4));
+      const xRange = view.xMax - view.xMin;
+      const yRange = view.yMax - view.yMin;
+
+      ctx.save();
+      ctx.strokeStyle = "#2563eb";
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.beginPath();
+
+      let drawing = false;
+      let lastY = null;
+      let lastPy = null;
+
+      for (let i = 0; i <= sampleCount; i++) {
+        const x = view.xMin + (i / sampleCount) * xRange;
+        let y;
+        try {
+          y = state.evaluator(x);
+        } catch {
+          y = NaN;
+        }
+
+        const valid = Number.isFinite(y) && Math.abs(y) < 1e12;
+        if (!valid) {
+          drawing = false;
+          lastY = null;
+          lastPy = null;
+          continue;
+        }
+
+        const px = xToPx(x);
+        const py = yToPx(y);
+        const nearCanvas = py > -height * 3 && py < height * 4;
+
+        if (!nearCanvas) {
+          drawing = false;
+          lastY = y;
+          lastPy = py;
+          continue;
+        }
+
+        const bigJump = lastPy !== null && Math.abs(py - lastPy) > height * 1.45 && Math.abs(y - lastY) > yRange * 0.65;
+
+        if (!drawing || bigJump) {
+          ctx.moveTo(px, py);
+          drawing = true;
+        } else {
+          ctx.lineTo(px, py);
+        }
+
+        lastY = y;
+        lastPy = py;
+      }
+
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawSpecialPoints() {
+      if (!state || !state.specialPoints || state.specialPoints.length === 0) return;
+
+      ctx.save();
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.textBaseline = "top";
+
+      for (const point of state.specialPoints) {
+        if (point.type !== "asymptote") continue;
+        const px = xToPx(point.x);
+        if (px < -4 || px > width + 4) continue;
+
+        ctx.strokeStyle = "#b42318";
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([7, 6]);
+        ctx.beginPath();
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = "#b42318";
+        const labelX = Math.min(width - 118, Math.max(6, px + 8));
+        ctx.fillText(`Polstelle x = ${formatNumber(point.x)}`, labelX, 8);
+      }
+
+      for (const point of state.specialPoints) {
+        if (point.type !== "hole") continue;
+        const px = xToPx(point.x);
+        const py = yToPx(point.y);
+        if (px < -10 || px > width + 10 || py < -10 || py > height + 10) continue;
+
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#b42318";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(px, py, 6.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#b42318";
+        const labelX = Math.min(width - 104, Math.max(6, px + 10));
+        const labelY = Math.min(height - 18, Math.max(6, py - 22));
+        ctx.fillText(`Lücke x = ${formatNumber(point.x)}`, labelX, labelY);
+      }
+
+      ctx.restore();
+    }
+
+    function updateRangeInfo() {
+      if (!state) {
+        rangeInfo.textContent = "";
+        return;
+      }
+      rangeInfo.innerHTML = `<strong>Sichtbarer Bereich:</strong> x = ${formatNumber(view.xMin)} … ${formatNumber(view.xMax)}, y = ${formatNumber(view.yMin)} … ${formatNumber(view.yMax)}<br><strong>Maßstab:</strong> ${equalScaleCheckbox.checked ? "gleich (1:1)" : "unabhängig"}`;
+    }
+
+    function drawFunction(forceAutoScale = false) {
+      try {
+        const compiled = compileExpression(functionInput.value);
+        const evaluator = compiled.evaluator;
+        const xMin = parseGermanNumber(xMinInput.value);
+        const xMax = parseGermanNumber(xMaxInput.value);
+
+        if (xMin >= xMax) throw new Error("Der Wert bei „x von“ muss kleiner sein als „x bis“.");
+
+        const sampleCount = Math.max(1200, Math.floor(width * 2));
+        const sample = sampleFunction(evaluator, xMin, xMax, sampleCount);
+        let yMin = state ? state.yMin : -5;
+        let yMax = state ? state.yMax : 5;
+
+        if (autoYCheckbox.checked || forceAutoScale || !state) {
+          const yRange = autoYRange(sample.finiteY);
+          yMin = yRange.yMin;
+          yMax = yRange.yMax;
+        }
+
+        state = {
+          evaluator,
+          denominators: compiled.denominators || [],
+          expression: functionInput.value,
+          xMin,
+          xMax,
+          yMin,
+          yMax,
+          specialPoints: []
+        };
+
+        drawCanvas();
+        const note = specialPointMessage(state.specialPoints);
+        showMessage(note ? `Graph gezeichnet. ${note}.` : "Graph gezeichnet.", "ok");
+        return true;
+      } catch (error) {
+        showMessage(error.message || "Die Funktion konnte nicht gezeichnet werden.", "error");
+        return false;
+      }
+    }
+
+    function resetView() {
+      xMinInput.value = "-10";
+      xMaxInput.value = "10";
+      autoYCheckbox.checked = true;
+      drawFunction(true);
+    }
+
+    function syncXInputs() {
+      if (!state) return;
+      xMinInput.value = formatNumber(state.xMin);
+      xMaxInput.value = formatNumber(state.xMax);
+    }
+
+    function autoScaleCurrentView() {
+      if (!state) {
+        drawFunction(true);
+        return;
+      }
+
+      try {
+        const sampleCount = Math.max(1200, Math.floor(width * 2));
+        const sample = sampleFunction(state.evaluator, state.xMin, state.xMax, sampleCount);
+        const yRange = autoYRange(sample.finiteY);
+        state.yMin = yRange.yMin;
+        state.yMax = yRange.yMax;
+        drawCanvas();
+        const note = specialPointMessage(state.specialPoints);
+        showMessage(note ? `y-Achse automatisch angepasst. ${note}.` : "y-Achse automatisch angepasst.", "ok");
+      } catch (error) {
+        showMessage(error.message || "Auto-Scale war nicht möglich.", "error");
+      }
+    }
+
+    function updatePrintInfo() {
+      if (!state) {
+        printFunction.textContent = `f(x) = ${functionInput.value}`;
+        printRange.textContent = "";
+        printScale.textContent = scaleDescription();
+        printMessage.textContent = "Der Graph konnte noch nicht gezeichnet werden.";
+        return;
+      }
+
+      const note = specialPointMessage(state.specialPoints || []);
+      printFunction.textContent = `f(x) = ${state.expression}`;
+      printRange.textContent = `x = ${formatNumber(view.xMin)} … ${formatNumber(view.xMax)}, y = ${formatNumber(view.yMin)} … ${formatNumber(view.yMax)}`;
+      printScale.textContent = scaleDescription();
+      printMessage.textContent = note || "Keine Lücke oder Polstelle im sichtbaren Bereich erkannt.";
+    }
+
+    function preparePrint() {
+      updatePrintInfo();
+      if (!state) return;
+      // Momentaufnahme statt gestrecktem Canvas: Ansicht und Maßstab bleiben erhalten.
+      printGraphImage.src = canvas.toDataURL("image/png");
+      printGraphImage.alt = `Graph von f(x) = ${state.expression}`;
+    }
+
+    function inputsMatchCurrentGraph() {
+      if (!state || functionInput.value !== state.expression) return false;
+      const matches = (input, value) =>
+        input.value.trim() === formatNumber(value) || parseGermanNumber(input.value) === value;
+      try {
+        return matches(xMinInput, state.xMin) && matches(xMaxInput, state.xMax);
+      } catch {
+        return false;
+      }
+    }
+
+    function printGraph() {
+      // Unveränderte Eingaben: den aktuellen Ausschnitt drucken, ohne neu zu skalieren.
+      if (!inputsMatchCurrentGraph() && !drawFunction(false)) return;
+      if (!state) return;
+      preparePrint();
+      requestAnimationFrame(() => window.print());
+    }
+
+    function createExampleButtons() {
+      const label = document.createElement("span");
+      label.textContent = "Beispiele:";
+      examples.appendChild(label);
+
+      EXAMPLE_FUNCTIONS.forEach(example => {
+        const button = document.createElement("button");
+        button.className = "example-button";
+        button.type = "button";
+        button.textContent = example;
+        button.addEventListener("click", () => {
+          functionInput.value = example;
+          autoYCheckbox.checked = true;
+          drawFunction(true);
+        });
+        examples.appendChild(button);
+      });
+    }
+
+    drawButton.addEventListener("click", () => drawFunction(false));
+    autoButton.addEventListener("click", () => {
+      autoYCheckbox.checked = true;
+      drawFunction(true);
+    });
+    resetButton.addEventListener("click", resetView);
+    printButton.addEventListener("click", printGraph);
+    equalScaleCheckbox.addEventListener("change", () => {
+      equalScaleHint.hidden = !equalScaleCheckbox.checked;
+      if (!state) return;
+      // Nicht neu einlesen: Umschalten verändert nur die Ansicht des gezeichneten Graphen.
+      drawCanvas();
+      const note = specialPointMessage(state.specialPoints);
+      const text = equalScaleCheckbox.checked
+        ? "Gleicher Maßstab (1:1) aktiv."
+        : "x- und y-Achse wieder unabhängig skaliert.";
+      showMessage(note ? `${text} ${note}.` : text, "ok");
+    });
+
+    functionInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") drawFunction(false);
+    });
+
+    xMinInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") drawFunction(false);
+    });
+
+    xMaxInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") drawFunction(false);
+    });
+
+    canvas.addEventListener("wheel", event => {
+      if (!state) return;
+      event.preventDefault();
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+      const graphX = pxToX(mouseX);
+      const graphY = pxToY(mouseY);
+      const factor = event.deltaY < 0 ? 0.85 : 1.18;
+
+      state.xMin = graphX + (state.xMin - graphX) * factor;
+      state.xMax = graphX + (state.xMax - graphX) * factor;
+      state.yMin = graphY + (state.yMin - graphY) * factor;
+      state.yMax = graphY + (state.yMax - graphY) * factor;
+
+      autoYCheckbox.checked = false;
+      syncXInputs();
+      drawCanvas();
+    }, { passive: false });
+
+    canvas.addEventListener("pointerdown", event => {
+      if (!state) return;
+      isDragging = true;
+      lastPointer = { x: event.clientX, y: event.clientY };
+      canvas.setPointerCapture(event.pointerId);
+    });
+
+    canvas.addEventListener("pointermove", event => {
+      if (!isDragging || !state || !lastPointer) return;
+
+      const dx = event.clientX - lastPointer.x;
+      const dy = event.clientY - lastPointer.y;
+      lastPointer = { x: event.clientX, y: event.clientY };
+
+      const xShift = -(dx / width) * (view.xMax - view.xMin);
+      const yShift = (dy / height) * (view.yMax - view.yMin);
+
+      state.xMin += xShift;
+      state.xMax += xShift;
+      state.yMin += yShift;
+      state.yMax += yShift;
+
+      autoYCheckbox.checked = false;
+      syncXInputs();
+      drawCanvas();
+    });
+
+    canvas.addEventListener("pointerup", event => {
+      isDragging = false;
+      lastPointer = null;
+      try { canvas.releasePointerCapture(event.pointerId); } catch {}
+    });
+
+    canvas.addEventListener("pointercancel", () => {
+      isDragging = false;
+      lastPointer = null;
+    });
+
+    canvas.addEventListener("dblclick", () => {
+      autoYCheckbox.checked = true;
+      autoScaleCurrentView();
+    });
+
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("beforeprint", preparePrint);
+    window.addEventListener("afterprint", () => requestAnimationFrame(resizeCanvas));
+
+    equalScaleHint.hidden = !equalScaleCheckbox.checked;
+    createExampleButtons();
+    resizeCanvas();
+    drawFunction(true);
+  </script>
+</body>
+</html>
