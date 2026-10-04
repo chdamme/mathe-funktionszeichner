@@ -1,10 +1,12 @@
 <!doctype html>
-<html lang="de">
+<html lang="fr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mathe-Funktionszeichner</title>
+  <title>Traceur de fonctions — Dom(f) et Im(f)</title>
+  <!-- Application pédagogique autonome, utilisable sans connexion. -->
   <style>
+
     :root {
       --bg: #f6f7fb;
       --panel: #ffffff;
@@ -17,392 +19,370 @@
       --accent-dark: #1d4ed8;
       --danger: #b42318;
       --ok: #067647;
-      --shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
-      --radius: 18px;
+      --shadow: 0 6px 22px rgba(16, 24, 40, .055);
+      --radius: 14px;
     }
-
     * { box-sizing: border-box; }
-
+    [hidden] { display: none !important; }
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: radial-gradient(circle at top left, #e0ecff, transparent 35%), var(--bg);
-      min-height: 100vh;
     }
-
     main {
-      width: min(1120px, calc(100% - 28px));
-      margin: 28px auto;
+      width: calc(100% - 24px);
+      height: calc(100vh - 24px);
+      height: calc(100dvh - 24px);
+      min-height: 500px;
+      margin: 12px auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
-
-    .hero {
-      margin-bottom: 18px;
+    .hero { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding: 0 3px; }
+    h1 { margin: 0; font-size: 1.25rem; line-height: 1.5; letter-spacing: -.025em; }
+    .header-note { color: var(--muted); font-size: .78rem; }
+    
+    .workspace {
+      display: grid;
+      grid-template-columns: clamp(232px, 17vw, 286px) minmax(0, 1fr) clamp(206px, 15vw, 254px);
+      gap: 10px;
+      flex: 1;
+      min-height: 0;
     }
-
-    h1 {
-      font-size: clamp(1.7rem, 3vw, 2.5rem);
-      margin: 0 0 8px;
-      letter-spacing: -0.03em;
-    }
-
-    .subtitle {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
     .panel {
-      background: rgba(255, 255, 255, 0.92);
-      border: 1px solid rgba(208, 213, 221, 0.75);
+      min-width: 0;
+      min-height: 0;
+      background: rgba(255,255,255,.97);
+      border: 1px solid rgba(208,213,221,.85);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       overflow: hidden;
     }
-
-    .print-header {
-      display: none;
-      padding: 18px 16px 12px;
-      border-bottom: 1px solid var(--line);
+    .controls-sidebar, .learning-sidebar {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: #c6cfdd transparent;
     }
-
-    .print-header h2 {
-      margin: 0 0 8px;
-      font-size: 1.35rem;
-      letter-spacing: -0.02em;
+    .sidebar-title {
+      margin: 0;
+      padding: 13px 14px 11px;
+      font-size: .88rem;
+      line-height: 1.3;
+      border-bottom: 1px solid #eaecf0;
+      background: #f9fafc;
     }
-
-    .print-details {
-      margin: 4px 0;
-      color: var(--muted);
-      line-height: 1.35;
-    }
-
-    .print-details strong {
-      color: var(--text);
-    }
-
     .controls {
       display: grid;
-      grid-template-columns: 1.5fr repeat(2, minmax(96px, 130px)) auto;
-      gap: 12px;
-      padding: 16px;
-      border-bottom: 1px solid var(--line);
+      grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+      gap: 10px;
+      padding: 14px;
+      border-bottom: 1px solid #eaecf0;
       align-items: end;
     }
-
-    label {
-      display: grid;
-      gap: 6px;
-      font-weight: 700;
-      font-size: 0.92rem;
-    }
-
+    label { display: grid; gap: 6px; min-width: 0; font-weight: 700; font-size: .84rem; }
+    .function-label, .button-row { grid-column: 1 / -1; }
     input[type="text"], input[type="number"] {
       width: 100%;
+      min-width: 0;
       border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 11px 12px;
+      border-radius: 9px;
+      padding: 9px 10px;
       font: inherit;
       background: #fff;
       color: var(--text);
       outline: none;
     }
-
-    input:focus {
+    #functionInput { font-size: .97rem; }
+    input:focus-visible {
       border-color: var(--accent);
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.12);
     }
-
-    .button-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
+    .button-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 7px; }
     button {
       border: 0;
-      border-radius: 12px;
-      padding: 11px 14px;
+      border-radius: 9px;
+      padding: 9px 7px;
       font: inherit;
+      font-size: .85rem;
       font-weight: 700;
       cursor: pointer;
       background: #eef4ff;
       color: var(--accent-dark);
-      transition: transform 0.08s ease, background 0.15s ease;
+      transition: background .15s ease;
     }
-
     button:hover { background: #dbeafe; }
-    button:active { transform: translateY(1px); }
-
-    .primary {
-      background: var(--accent);
-      color: white;
-    }
-
-    .primary:hover { background: var(--accent-dark); }
-
+    button:active { background: #c7ddff; }
+    button:focus-visible, summary:focus-visible { outline: 3px solid #93b4ff; outline-offset: 2px; }
+    .primary { background: var(--accent); color: #fff; }
+    .primary:hover, .primary:active { background: var(--accent-dark); }
     .options {
       display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-      padding: 0 16px 14px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 11px;
+      padding: 14px;
       color: var(--muted);
-      font-size: 0.94rem;
+      border-bottom: 1px solid #eaecf0;
     }
+    .checkbox { display: grid; grid-template-columns: 17px minmax(0,1fr); gap: 8px; align-items: start; font-weight: 600; font-size: .82rem; line-height: 1.4; color: var(--text); cursor: pointer; }
+    input[type="checkbox"] { width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--accent); cursor: pointer; }
+    .interaction-hint, .scale-hint { font-size: .74rem; line-height: 1.55; }
+    .scale-hint { padding: 9px; background: #eef4ff; border-radius: 7px; color: #344054; }
+    .examples { display: flex; gap: 6px; flex-wrap: wrap; padding: 13px 14px 15px; border-bottom: 1px solid #eaecf0; }
+    .examples > span { flex-basis: 100%; color: var(--muted); font-size: .81rem; font-weight: 700; margin-bottom: 3px; }
+    .example-button { max-width: 100%; padding: 6px 8px; background: #f2f4f7; color: #344054; font-size: .76rem; font-weight: 650; overflow-wrap: anywhere; }
+    .input-help, .notation-help { padding: 12px 14px; font-size: .77rem; color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; }
+    .input-help { border-bottom: 1px solid #eaecf0; }
+    summary { color: #344054; font-weight: 700; cursor: pointer; }
+    .help { display: grid; gap: 12px; margin-top: 12px; }
+    .help-card strong { display: block; color: var(--text); margin-bottom: 4px; }
+    .notation-help p { margin: 10px 0 0; }
+    code { background: #f2f4f7; border: 1px solid #eaecf0; padding: 1px 3px; border-radius: 4px; color: #344054; }
 
-    .checkbox {
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-      font-weight: 600;
-      color: var(--text);
+    
+    .graph-panel { display: flex; flex-direction: column; }
+    .function-banner { padding: 11px 14px; display: flex; flex-shrink: 0; gap: 10px; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
+    #displayFunction { font-size: 1.08rem; font-weight: 750; overflow-wrap: anywhere; min-width: 0; }
+    .banner-note { color: var(--muted); font-size: .7rem; text-align: right; flex-shrink: 1; }
+    .math-frame {
+      display: grid;
+      grid-template-columns: clamp(118px, 9.3vw, 168px) minmax(0,1fr);
+      grid-template-rows: minmax(0,1fr) auto;
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
     }
-
-    .scale-hint {
-      flex-basis: 100%;
-      line-height: 1.4;
-    }
-
-    .print-graph {
-      display: none;
-    }
-
-    .examples {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      padding: 0 16px 16px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .examples span {
-      color: var(--muted);
-      font-weight: 700;
-      display: inline-flex;
-      align-items: center;
-      margin-right: 2px;
-    }
-
-    .example-button {
-      padding: 8px 10px;
-      background: #f2f4f7;
-      color: #344054;
-      font-weight: 650;
-    }
-
-    .canvas-wrap {
-      position: relative;
-      background: #fff;
-      min-height: 540px;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: 540px;
-      cursor: grab;
-      touch-action: none;
-    }
-
+    .image-card { min-width: 0; min-height: 0; overflow: auto; scrollbar-width: thin; padding: 14px 11px; background: #faf8ff; border-right: 1px solid #ece5ff; }
+    .math-heading { font-size: .8rem; font-weight: 800; line-height: 1.4; }
+    .image-card .math-heading, .image-card .math-formula { color: #6d28d9; }
+    .quality { display: inline-block; padding: 3px 5px; border-radius: 5px; background: #fff; border: 1px solid #e4e7ec; font-size: .58rem; font-weight: 750; letter-spacing: .025em; vertical-align: middle; }
+    .image-card .quality { margin: 10px 0 5px; }
+    .math-formula { font-family: 'Cambria Math','DejaVu Sans','Segoe UI',sans-serif; font-size: 1.04rem; font-weight: 600; line-height: 1.55; overflow-wrap: anywhere; }
+    #imageNotation, #imageSet { display: block; }
+    #imageSet.unknown { font: 650 .87rem/1.5 system-ui,sans-serif; }
+    .set-note { color: var(--muted); font-size: .73rem; line-height: 1.5; margin: 10px 0 0; overflow-wrap: anywhere; }
+    .image-card .small-definition { margin: 4px 0 0; color: var(--muted); font-size: .75rem; }
+    .canvas-wrap { position: relative; min-width: 0; min-height: 0; background: #fff; }
+    canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
     canvas:active { cursor: grabbing; }
+    .domain-card { grid-column: 2; padding: 10px 13px 12px; max-height: 180px; overflow: auto; scrollbar-width: thin; background: #f0fdf7; border-top: 1px solid #d1fae5; min-width: 0; }
+    .domain-card .math-heading, .domain-card .math-formula { color: #047857; }
+    .domain-card .quality { margin-left: 6px; }
+    .domain-card .set-note { margin-top: 3px; }
+    .corner-card { padding: 10px 11px; grid-column: 1; grid-row: 2; border-right: 1px solid #ece5ff; color: var(--muted); font-size: .68rem; line-height: 1.55; }
+    .rail-symbol { font-size: .9rem; color: #344054; }
 
-    .status {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 16px;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-size: 0.92rem;
-      line-height: 1.35;
-    }
-
+    .study-summary { display: grid; grid-template-columns: minmax(0,1fr); }
+    .study-card { padding: 15px 14px 17px; min-width: 0; }
+    .study-card + .study-card { border-top: 1px solid var(--line); }
+    .study-card h3 { margin: 0 0 9px; font-size: .9rem; line-height: 1.45; }
+    .study-card .result { font-size: .96rem; font-weight: 650; line-height: 1.6; overflow-wrap: anywhere; }
+    .study-card p { font-size: .78rem; color: var(--muted); margin: 10px 0 0; line-height: 1.6; }
+    .roots-card h3, .roots-card .result { color: #047857; }
+    .origin-card h3, .origin-card .result { color: #b45309; }
+    .analysis-note { padding: 12px 14px; border-top: 1px solid #eaecf0; background: #f9fafb; color: var(--muted); font-size: .73rem; line-height: 1.65; overflow-wrap: anywhere; }
+    .status { display: flex; flex-direction: column; gap: 12px; padding: 13px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: .75rem; line-height: 1.6; overflow-wrap: anywhere; }
     .status strong { color: var(--text); }
     .status .error { color: var(--danger); font-weight: 700; }
-    .status .ok { color: var(--ok); font-weight: 700; }
+    .status .ok { color: var(--ok); font-weight: 600; }
+    .print-header, .print-graph { display: none; }
 
-    .help {
-      margin-top: 16px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+    @media screen and (max-width: 1480px) { .banner-note { display: none; } }
+    
+    @media screen and (max-width: 1099px) {
+      main { height: auto; min-height: calc(100vh - 24px); }
+      .workspace { grid-template-columns: 220px minmax(0,1fr); flex: none; align-items: stretch; }
+      .graph-panel { height: max(600px, calc(100vh - 72px)); height: max(600px, calc(100dvh - 72px)); }
+      .controls-sidebar { max-height: max(600px, calc(100vh - 72px)); max-height: max(600px, calc(100dvh - 72px)); }
+      .learning-sidebar { grid-column: 1 / -1; }
+      .learning-sidebar > .sidebar-title { display: none; }
+      .study-summary { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+      .study-card + .study-card { border-top: 0; border-left: 1px solid var(--line); }
+      .status { flex-direction: row; justify-content: space-between; }
+      .math-frame { grid-template-columns: 118px minmax(0,1fr); }
     }
-
-    .help-card {
-      background: rgba(255, 255, 255, 0.82);
-      border: 1px solid rgba(208, 213, 221, 0.75);
-      border-radius: 16px;
-      padding: 14px;
-      line-height: 1.45;
-      color: var(--muted);
-    }
-
-    .help-card strong {
-      display: block;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-
-    code {
-      background: #f2f4f7;
-      border: 1px solid #eaecf0;
-      padding: 1px 5px;
-      border-radius: 6px;
-      color: #344054;
-    }
-
-    @media (max-width: 850px) {
-      .controls { grid-template-columns: 1fr 1fr; }
-      .function-label { grid-column: 1 / -1; }
-      .button-row { grid-column: 1 / -1; }
-      .help { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 560px) {
-      main { width: min(100% - 18px, 1120px); margin: 14px auto; }
-      .controls { grid-template-columns: 1fr; }
-      canvas { height: 460px; }
-      .canvas-wrap { min-height: 460px; }
+    
+    @media screen and (max-width: 719px) {
+      main { width: calc(100% - 16px); margin: 8px auto; gap: 8px; }
+      h1 { font-size: 1.12rem; }
+      .header-note { display: none; }
+      .workspace { grid-template-columns: minmax(0,1fr); gap: 9px; }
+      .controls-sidebar { max-height: none; }
+      .options { gap: 10px; }
+      .controls { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+      .button-row { grid-template-columns: repeat(4,minmax(0,1fr)); }
+      .learning-sidebar { grid-column: auto; }
+      .graph-panel { height: 600px; }
+      .math-frame { grid-template-columns: 106px minmax(0,1fr); }
+      .image-card, .corner-card { padding: 10px 8px; }
+      .math-heading { font-size: .75rem; }
+      .math-formula { font-size: .9rem; }
+      .image-card .small-definition, .set-note { font-size: .7rem; }
+      .domain-card { padding: 10px; }
+      .domain-card .quality { margin-left: 0; }
+      .study-summary { grid-template-columns: minmax(0,1fr); }
+      .study-card + .study-card { border-left: 0; border-top: 1px solid var(--line); }
       .status { flex-direction: column; }
     }
+    @media screen and (max-width: 479px) { .button-row { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 
+    
     @media print {
-      @page { margin: 12mm; }
-
-      body {
-        background: #fff;
-        min-height: auto;
-      }
-
-      main {
-        width: 100%;
-        margin: 0;
-      }
-
-      .hero,
-      .controls,
-      .options,
-      .examples,
-      .help {
-        display: none !important;
-      }
-
-      .panel {
-        border: 0;
-        border-radius: 0;
-        box-shadow: none;
-        background: #fff;
-        overflow: visible;
-      }
-
-      .print-header {
-        display: block;
-        padding: 0 0 8mm;
-        border-bottom: 0;
-      }
-
-      .canvas-wrap {
-        min-height: auto;
-        border: 1px solid #d0d5dd;
-        page-break-inside: avoid;
-      }
-
-      canvas {
-        display: none;
-      }
-
-      /* Das Druckbild behält sein Seitenverhältnis: auch auf Papier echte 1:1-Einheiten. */
-      .print-graph {
-        display: block;
-        width: auto;
-        height: auto;
+      @page { size: A4 portrait; margin: 10mm; }
+      body { background: #fff; }
+      main { display: block; width: 100%; height: auto; min-height: 0; margin: 0; }
+      .hero, .controls-sidebar, .sidebar-title, .function-banner, .input-help, .notation-help { display: none !important; }
+      .workspace { display: block; }
+      .panel { border: 0; border-radius: 0; box-shadow: none; background: #fff; overflow: visible; }
+      .graph-panel { display: block; height: auto; }
+      .print-header { display: block; padding: 0 0 4mm; }
+      .print-header h2 { margin: 0 0 2mm; font-size: 16pt; }
+      .print-details { font-size: 9pt; line-height: 1.35; margin: 1mm 0; color: #344054; }
+      .math-frame {
+        display: grid;
+        grid-template-columns: 32mm minmax(0,1fr);
+        grid-template-rows: auto auto;
+        width: calc(32mm + var(--print-plot-width, 157mm));
         max-width: 100%;
-        max-height: 180mm;
         margin: 0 auto;
+        break-inside: avoid;
       }
-
-      .status {
-        padding: 4mm 0 0;
-        border-top: 0;
-        font-size: 10pt;
-        color: #344054;
-      }
+      .image-card { padding: 3mm 2mm; overflow: visible; }
+      .image-card .quality { margin: 2mm 0 1mm; }
+      .math-heading { font-size: 9pt; }
+      .math-formula { font-size: 10pt; }
+      #imageSet.unknown { font-size: 9pt; }
+      .set-note, .image-card .small-definition { font-size: 7.5pt; }
+      .quality { font-size: 6pt; }
+      .canvas-wrap { position: relative; min-height: 0; }
+      canvas { display: none !important; }
+      .print-graph { display: block; width: 100%; height: auto; max-width: 100%; margin: 0; }
+      .domain-card { padding: 3mm; max-height: none; overflow: visible; }
+      .corner-card { padding: 3mm 2mm; font-size: 7pt; }
+      .learning-sidebar { overflow: visible; margin-top: 3mm; }
+      .study-summary { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); border-top: 1px solid var(--line); break-inside: avoid; }
+      .study-card { padding: 3mm; }
+      .study-card + .study-card { border-top: 0; border-left: 1px solid var(--line); }
+      .study-card h3 { font-size: 10pt; margin-bottom: 2mm; }
+      .study-card .result { font-size: 10pt; line-height: 1.45; }
+      .study-card p { font-size: 8pt; margin-top: 2mm; line-height: 1.45; }
+      .analysis-note { font-size: 7.5pt; padding: 2mm 0; line-height: 1.4; }
+      .status { flex-direction: row; justify-content: space-between; padding: 2mm 0 0; font-size: 7.5pt; line-height: 1.4; border-top: 0; }
+      .math-frame, .study-summary { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
+
   </style>
 </head>
 <body>
   <main>
-    <section class="hero">
-      <h1>Mathe-Funktionszeichner</h1>
-      <p class="subtitle">Gib eine Funktion ein, zum Beispiel <code>sin(x)</code>, <code>x^2 - 4</code> oder <code>1/x</code>. Der Graph wird automatisch passend skaliert.</p>
-    </section>
-
-    <section class="panel" aria-label="Funktionszeichner">
-      <div class="print-header" aria-hidden="true">
-        <h2>Funktionsgraph</h2>
-        <div class="print-details"><strong>Funktion:</strong> <span id="printFunction">f(x) = sin(x)</span></div>
-        <div class="print-details"><strong>Bereich:</strong> <span id="printRange"></span></div>
-        <div class="print-details"><strong>Maßstab:</strong> <span id="printScale"></span></div>
-        <div class="print-details"><strong>Hinweis:</strong> <span id="printMessage"></span></div>
-      </div>
-
-      <div class="controls">
-        <label class="function-label">
-          Funktion f(x)
-          <input id="functionInput" type="text" value="sin(x)" autocomplete="off" spellcheck="false" />
-        </label>
-
-        <label>
-          x von
-          <input id="xMinInput" type="text" value="-10" inputmode="decimal" />
-        </label>
-
-        <label>
-          x bis
-          <input id="xMaxInput" type="text" value="10" inputmode="decimal" />
-        </label>
-
-        <div class="button-row">
-          <button id="drawButton" class="primary">Zeichnen</button>
-          <button id="autoButton">Auto-Scale</button>
-          <button id="resetButton">Reset</button>
-          <button id="printButton">Drucken</button>
+    <header class="hero">
+      <h1>Traceur de fonctions</h1>
+      <span class="header-note">Saisie à gauche · Graphique au centre · Repères à droite</span>
+    </header>
+    <div class="workspace">
+      <aside class="panel controls-sidebar" aria-label="Saisie et réglages">
+        <h2 class="sidebar-title">Saisie &amp; affichage</h2>
+        <div class="controls">
+          <label class="function-label">Fonction f(x)
+            <input autocomplete="off" id="functionInput" spellcheck="false" type="text" value="sin(x)"/>
+          </label>
+          <label>x minimum<input id="xMinInput" inputmode="decimal" type="text" value="-10"/></label>
+          <label>x maximum<input id="xMaxInput" inputmode="decimal" type="text" value="10"/></label>
+          <div class="button-row">
+            <button class="primary" id="drawButton">Tracer</button>
+            <button id="autoButton" title="Ajuster automatiquement la vue">Ajuster</button>
+            <button id="resetButton">Réinitialiser</button>
+            <button id="printButton">Imprimer</button>
+          </div>
         </div>
-      </div>
-
-      <div class="options">
-        <label class="checkbox">
-          <input id="autoYCheckbox" type="checkbox" checked />
-          y-Achse automatisch skalieren
-        </label>
-        <label class="checkbox" title="Eine Einheit auf der x-Achse ist genauso lang wie eine Einheit auf der y-Achse.">
-          <input id="equalScaleCheckbox" type="checkbox" aria-describedby="equalScaleHint" />
-          Gleicher Maßstab für x und y (1:1)
-        </label>
-        <span>Mausrad: zoomen · Ziehen: verschieben · Doppelklick: Auto-Scale</span>
-        <span id="equalScaleHint" class="scale-hint" hidden>1:1 bedeutet: Eine Einheit ist auf beiden Achsen gleich lang. Die Ansicht wird dafür bei Bedarf erweitert; der eingegebene x-Bereich bleibt der Ausgangsbereich für Auto-Scale.</span>
-      </div>
-
-      <div class="examples" id="examples"></div>
-
-      <div class="canvas-wrap">
-        <canvas id="graphCanvas" aria-label="Graph der Funktion"></canvas>
-        <img id="printGraphImage" class="print-graph" alt="Graph der Funktion" />
-      </div>
-
-      <div class="status">
-        <div id="message"><span class="ok">Bereit.</span></div>
-        <div id="rangeInfo"></div>
-      </div>
-    </section>
-
-    <section class="help" aria-label="Hilfe">
-      <div class="help-card"><strong>Erlaubte Zeichen</strong> Zahlen, <code>x</code>, Klammern und die Rechenzeichen <code>+ - * / ^</code>. Beispiel: <code>2*x + 3</code>.</div>
-      <div class="help-card"><strong>Funktionen</strong> <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>sqrt</code>, <code>abs</code>, <code>ln</code>, <code>log</code>, <code>exp</code>. Beispiel: <code>sqrt(x)</code>.</div>
-      <div class="help-card"><strong>Konstanten</strong> <code>pi</code> oder <code>π</code> für Pi und <code>e</code> für Eulers Zahl. Dezimalzahlen gehen mit Punkt oder Komma.</div>
-    </section>
+        <div class="options">
+          <label class="checkbox"><input checked="" id="autoYCheckbox" type="checkbox"/>Ajuster automatiquement l’axe y</label>
+          <label class="checkbox" title="Une unité a la même longueur sur les deux axes.">
+            <input aria-describedby="equalScaleHint" id="equalScaleCheckbox" type="checkbox"/>Même échelle pour x et y (1:1)
+          </label>
+          <label class="checkbox"><input checked="" id="studyCheckbox" type="checkbox"/>Marquer les points remarquables</label>
+          <span class="interaction-hint">Molette : zoomer · Glisser : déplacer · Double-clic : ajuster la vue</span>
+          <span class="scale-hint" hidden="" id="equalScaleHint">Échelle 1:1 : une unité a la même longueur sur les deux axes. La vue est élargie si nécessaire ; l’intervalle de x saisi reste la référence pour l’ajustement automatique.</span>
+        </div>
+        <div class="examples" id="examples"></div>
+        <details class="input-help">
+          <summary>Aide à la saisie</summary>
+          <section aria-label="Aide" class="help">
+            <div class="help-card"><strong>Caractères autorisés</strong>Nombres, <code>x</code>, parenthèses et opérations <code>+ - * / ^</code>. Exemple : <code>2*x + 3</code>.</div>
+            <div class="help-card"><strong>Fonctions</strong><code>sin</code>, <code>cos</code>, <code>tan</code>, <code>sqrt</code>, <code>abs</code>, <code>ln</code>, <code>log</code>, <code>exp</code>. Exemple : <code>sqrt(x)</code> pour la racine carrée.</div>
+            <div class="help-card"><strong>Constantes</strong><code>pi</code> ou <code>π</code> pour le nombre pi, et <code>e</code> pour le nombre d’Euler. Les décimales s’écrivent avec un point ou une virgule.</div>
+          </section>
+        </details>
+        <details class="notation-help">
+          <summary>Notations et limites de l’analyse automatique</summary>
+          <p><strong>Dom(f)</strong> est le domaine de définition : tous les x pour lesquels l’expression d’origine donne une valeur réelle. <strong>Im(f)</strong> est l’ensemble image : toutes les valeurs de y effectivement atteintes. Abscisse = x (axe horizontal) ; ordonnée = y (axe vertical).</p>
+          <p><strong>ℝ</strong> désigne tous les nombres réels. <strong>ℝ \ {4}</strong> désigne tous les réels sauf 4. L’intervalle <strong>[a ; b]</strong> contient ses deux bornes ; <strong>]a ; b[</strong> ne contient aucune des deux. <strong>∪</strong> désigne la réunion et <strong>∅</strong> l’ensemble vide. Un cercle vide indique une valeur exclue.</p>
+          <p><strong>−∞ et +∞</strong> indiquent un prolongement sans borne dans la direction correspondante. Sur les bandes de Dom(f) et Im(f), ils accompagnent uniquement les flèches des parties non bornées. Une flèche seule indique une continuation hors du cadre, pas nécessairement jusqu’à l’infini. Ces symboles ne sont pas des graduations : le bord de la fenêtre représente toujours une valeur finie. L’infini n’est jamais une borne incluse.</p>
+          <p>L’application analyse les polynômes et les fonctions rationnelles de degré limité, ainsi que de nombreuses compositions avec sqrt, abs, ln, log, exp et les fonctions trigonométriques. Les calculs utilisent des nombres à virgule flottante ; ≈ indique une valeur arrondie. Pour les degrés très élevés, les valeurs extrêmes ou les compositions complexes, l’analyse globale est limitée. L’application indique alors « non déterminé intégralement » ou affiche seulement les conditions de définition. Elle ne déduit jamais un ensemble image global des seuls points échantillonnés à l’écran. Les racines recherchées numériquement concernent uniquement la vue affichée et leur liste peut être incomplète.</p>
+          <p>Les angles sont exprimés en radians. Les puissances fractionnaires, comme <strong>x^(1/3)</strong>, sont interprétées dans les réels. <strong>0^0</strong> est considéré comme non défini dans cette application. Pour un exposant variable, comme dans x^x, le domaine réel n’est pas toujours déterminé intégralement.</p>
+        </details>
+      </aside>
+      <section class="panel graph-panel" aria-label="Graphique de la fonction">
+        <div aria-hidden="true" class="print-header">
+          <h2>Graphique de la fonction</h2>
+          <div class="print-details"><strong>Fonction :</strong> <span id="printFunction">f(x) = sin(x)</span></div>
+          <div class="print-details"><strong>Vue affichée :</strong> <span id="printRange"></span></div>
+          <div class="print-details"><strong>Échelle :</strong> <span id="printScale"></span></div>
+          <div class="print-details"><strong>Remarque :</strong> <span id="printMessage"></span></div>
+        </div>
+        <div class="function-banner">
+          <span id="displayFunction">f(x) = sin(x)</span>
+          <span class="banner-note">Abscisse = x · Ordonnée = y<br/>Bandes colorées : projections des ensembles globaux</span>
+        </div>
+        <div class="math-frame">
+          <aside aria-label="Ensemble image" class="image-card">
+            <div class="math-heading">Ensemble image</div>
+            <p class="small-definition">Valeurs de y atteintes</p>
+            <span class="quality" id="imageQuality">GLOBAL</span>
+            <div class="math-formula"><span id="imageNotation">Im(f) =</span><span id="imageSet">[−1 ; 1]</span></div>
+            <p class="set-note" id="imageNote"></p>
+          </aside>
+          <div class="canvas-wrap">
+            <canvas aria-label="Graphique de la fonction, avec l’abscisse x et l’ordonnée y" id="graphCanvas"></canvas>
+            <img alt="Graphique de la fonction" class="print-graph" id="printGraphImage"/>
+          </div>
+          <div class="corner-card">
+            <span class="rail-symbol">●</span> valeur incluse<br/>
+            <span class="rail-symbol">○</span> valeur exclue<br/>
+            <span class="rail-symbol">→</span> suite hors cadre<br/>
+            <span class="rail-symbol">±∞</span> vers l’infini
+          </div>
+          <section aria-label="Domaine de définition" class="domain-card">
+            <div class="math-heading">Domaine · Valeurs de x autorisées <span class="quality" id="domainQuality">GLOBAL</span></div>
+            <div class="math-formula" id="domainFormula">Dom(f) = ℝ</div>
+            <p class="set-note" id="domainNote"></p>
+          </section>
+        </div>
+      </section>
+      <aside class="panel learning-sidebar" aria-label="Points remarquables et explications">
+        <h2 class="sidebar-title">Repères &amp; explications</h2>
+        <div aria-live="polite" class="study-summary">
+          <section class="study-card roots-card">
+            <h3>● Racines</h3>
+            <div class="result" id="rootsFormula"></div>
+            <p id="rootsNote"></p>
+          </section>
+          <section class="study-card origin-card">
+            <h3>◆ Ordonnée à l’origine</h3>
+            <div class="result" id="originFormula"></div>
+            <p id="originNote"></p>
+          </section>
+        </div>
+        <div class="analysis-note"><span id="approxNote"></span>Dom(f) et Im(f) concernent la fonction entière, pas seulement la vue affichée. Les résultats incomplets sont signalés explicitement.</div>
+        <div class="status">
+          <div id="message" role="status" aria-live="polite" aria-atomic="true"><span class="ok">Prêt.</span></div>
+          <div id="rangeInfo"></div>
+        </div>
+      </aside>
+    </div>
   </main>
 
   <script>
@@ -449,6 +429,8 @@
     };
 
     const EXAMPLE_FUNCTIONS = [
+      "-3*x^2 + 4",
+      "1/(x - 4)",
       "sin(x)",
       "cos(x)",
       "x^2 - 4",
@@ -464,8 +446,8 @@
     ];
 
     let state = null;
-    // state enthält den Ausgangsbereich, view den tatsächlich sichtbaren Ausschnitt.
-    // So vergrößert wiederholtes Auto-Scale nicht immer weiter den x-Bereich.
+
+
     let view = null;
     let width = 0;
     let height = 0;
@@ -485,9 +467,9 @@
         .replaceAll("'", "&#039;");
     }
 
-    function parseGermanNumber(text) {
+    function parseInputNumber(text) {
       const value = Number(String(text).trim().replace(",", "."));
-      if (!Number.isFinite(value)) throw new Error("Bitte gültige Zahlen für den x-Bereich eingeben.");
+      if (!Number.isFinite(value)) throw new Error("Saisissez des nombres valides pour les bornes de x.");
       return value;
     }
 
@@ -496,10 +478,16 @@
       let s = String(input)
         .toLowerCase()
         .replaceAll("π", "pi")
+        .replace(/[−–]/g, "-")
+        .replace(/[×·]/g, "*")
+        .replace(/÷/g, "/")
+        .replace(/²/g, "^2")
+        .replace(/³/g, "^3")
+        .replace(/^\s*(?:f\(x\)|y)\s*=/, "")
         .replace(/(\d),(\d)/g, "$1.$2")
         .replace(/\s+/g, "");
 
-      if (s.length === 0) throw new Error("Bitte eine Funktion eingeben.");
+      if (s.length === 0) throw new Error("Saisissez une fonction.");
 
       let i = 0;
       while (i < s.length) {
@@ -525,7 +513,7 @@
 
           const raw = s.slice(start, i);
           const value = Number(raw);
-          if (!Number.isFinite(value)) throw new Error(`Ungültige Zahl: ${raw}`);
+          if (!Number.isFinite(value)) throw new Error(`Nombre invalide : ${raw}`);
           tokens.push({ type: "number", value });
           continue;
         }
@@ -535,8 +523,8 @@
           i++;
           while (i < s.length && s[i] >= "a" && s[i] <= "z") i++;
           const name = s.slice(start, i);
-          if (name !== "x" && !(name in FUNCTIONS) && !(name in CONSTANTS)) {
-            throw new Error(`Unbekannter Ausdruck: ${name}`);
+          if (name !== "x" && !(Object.hasOwn(FUNCTIONS, name)) && !(Object.hasOwn(CONSTANTS, name))) {
+            throw new Error(`Expression inconnue : ${name}`);
           }
           tokens.push({ type: "name", value: name });
           continue;
@@ -560,7 +548,7 @@
           continue;
         }
 
-        throw new Error(`Dieses Zeichen wird nicht erkannt: ${ch}`);
+        throw new Error(`Caractère non reconnu : ${ch}`);
       }
 
       return insertImplicitMultiplication(tokens);
@@ -577,13 +565,13 @@
 
         const currentEndsValue = current.type === "number" ||
           current.type === "rightParen" ||
-          (current.type === "name" && (current.value === "x" || current.value in CONSTANTS));
+          (current.type === "name" && (current.value === "x" || Object.hasOwn(CONSTANTS, current.value)));
 
         const nextStartsValue = next.type === "number" ||
           next.type === "leftParen" ||
           next.type === "name";
 
-        const functionCall = current.type === "name" && current.value in FUNCTIONS && next.type === "leftParen";
+        const functionCall = current.type === "name" && Object.hasOwn(FUNCTIONS, current.value) && next.type === "leftParen";
 
         if (currentEndsValue && nextStartsValue && !functionCall) {
           result.push({ type: "operator", value: "*" });
@@ -592,180 +580,714 @@
       return result;
     }
 
-    function makeNode(evaluator, denominators = [], constantValue = null) {
-      return { evaluator, denominators, constantValue };
-    }
 
-    function mergeDenominators(...nodes) {
-      return nodes.flatMap(node => node.denominators || []);
-    }
 
-    function constantFromOperation(left, right, operator) {
-      if (left.constantValue === null || right.constantValue === null) return null;
-      if (operator === "+") return left.constantValue + right.constantValue;
-      if (operator === "-") return left.constantValue - right.constantValue;
-      if (operator === "*") return left.constantValue * right.constantValue;
-      if (operator === "/") return left.constantValue / right.constantValue;
-      if (operator === "^") return Math.pow(left.constantValue, right.constantValue);
+    function rationalExponent(value) {
+      if (!Number.isFinite(value)) return null;
+      if (Number.isInteger(value)) return { p: value, q: 1 };
+      for (let q = 2; q <= 99; q++) {
+        const p = Math.round(value * q);
+        if (Math.abs(value - p / q) < 2e-14) return { p, q };
+      }
       return null;
     }
 
+    function realPower(base, exponent) {
+      if (!Number.isFinite(base) || !Number.isFinite(exponent)) return NaN;
+      if (base === 0 && exponent <= 0) return NaN;
+      if (base < 0 && !Number.isInteger(exponent)) {
+        const fraction = rationalExponent(exponent);
+        if (!fraction || fraction.q % 2 === 0) return NaN;
+        return (Math.abs(fraction.p) % 2 ? -1 : 1) * Math.pow(-base, exponent);
+      }
+      const result = Math.pow(base, exponent);
+      return base !== 0 && result === 0 ? NaN : result;
+    }
+
+    function expressionNode(kind, data) {
+      const node = { kind, ...data, constantValue: null, denominators: [] };
+      if (kind === 'number') {
+        node.constantValue = data.value;
+        node.evaluator = () => data.value;
+      } else if (kind === 'variable') {
+        node.evaluator = x => x;
+      } else if (kind === 'negate') {
+        node.evaluator = x => -data.arg.evaluator(x);
+        node.denominators = data.arg.denominators;
+        if (data.arg.constantValue !== null) node.constantValue = -data.arg.constantValue;
+      } else if (kind === 'binary') {
+        const { left, right, op } = data;
+        node.denominators = [...left.denominators, ...right.denominators];
+        if (op === '/') node.denominators.push(right.evaluator);
+        if (op === '^' && right.constantValue !== null && right.constantValue <= 0) node.denominators.push(left.evaluator);
+        const operation = (a, b) => {
+          if (!Number.isFinite(a) || !Number.isFinite(b)) return NaN;
+          if (op === '+') return a + b;
+          if (op === '-') return a - b;
+          if (op === '*') return a !== 0 && b !== 0 && a * b === 0 ? NaN : a * b;
+          if (op === '/') return b === 0 || (a !== 0 && a / b === 0) ? NaN : a / b;
+          return realPower(a, b);
+        };
+        node.evaluator = x => operation(left.evaluator(x), right.evaluator(x));
+        if (left.constantValue !== null && right.constantValue !== null) {
+          node.constantValue = operation(left.constantValue, right.constantValue);
+        }
+      } else if (kind === 'call') {
+        const { name, arg } = data;
+        node.denominators = [...arg.denominators];
+        if (name === 'tan') node.denominators.push(x => Math.cos(arg.evaluator(x)));
+        const fn = v => {
+          if (!Number.isFinite(v)) return NaN;
+          if (name === 'tan' && Math.abs(Math.cos(v)) < 4e-15) return NaN;
+          if (name === 'sin' || name === 'cos') {
+            const k = Math.round(v / (Math.PI / 2));
+            if ((k !== 0 || v === 0) && Math.abs(v - k * (Math.PI / 2)) <= 2 * Number.EPSILON * Math.max(1, Math.abs(v))) {
+              const index = ((k % 4) + 4) % 4;
+              return (name === 'sin' ? [0, 1, 0, -1] : [1, 0, -1, 0])[index];
+            }
+          }
+          const result = FUNCTIONS[name](v);
+
+          return name === 'exp' && result === 0 ? NaN : result;
+        };
+        node.evaluator = x => fn(arg.evaluator(x));
+        if (arg.constantValue !== null) node.constantValue = fn(arg.constantValue);
+      }
+      return node;
+    }
+
     function compileExpression(input) {
+      if (String(input).length > 600) throw new Error('Saisissez une fonction plus courte (600 caractères maximum).');
       const tokens = tokenize(input);
       let position = 0;
-
-      function peek() {
-        return tokens[position];
+      function match(type, value) {
+        const token = tokens[position];
+        if (!token || token.type !== type || (value !== undefined && token.value !== value)) return false;
+        position++; return true;
       }
-
-      function consume() {
-        return tokens[position++];
-      }
-
-      function match(type, value = null) {
-        const token = peek();
-        if (!token || token.type !== type) return false;
-        if (value !== null && token.value !== value) return false;
-        position++;
-        return true;
-      }
-
-      function expect(type, value = null, text = "Unerwartetes Ende der Eingabe.") {
-        if (!match(type, value)) throw new Error(text);
-      }
-
-      function parseExpression() {
-        return parseAddition();
-      }
-
-      function parseAddition() {
-        let node = parseMultiplication();
+      function binary(op, left, right) { return expressionNode('binary', { op, left, right }); }
+      function addition() {
+        let node = multiplication();
         while (true) {
-          if (match("operator", "+")) {
-            const left = node;
-            const right = parseMultiplication();
-            node = makeNode(
-              x => left.evaluator(x) + right.evaluator(x),
-              mergeDenominators(left, right),
-              constantFromOperation(left, right, "+")
-            );
-          } else if (match("operator", "-")) {
-            const left = node;
-            const right = parseMultiplication();
-            node = makeNode(
-              x => left.evaluator(x) - right.evaluator(x),
-              mergeDenominators(left, right),
-              constantFromOperation(left, right, "-")
-            );
-          } else {
-            break;
-          }
+          if (match('operator', '+')) node = binary('+', node, multiplication());
+          else if (match('operator', '-')) node = binary('-', node, multiplication());
+          else return node;
         }
-        return node;
       }
-
-      function parseMultiplication() {
-        let node = parseUnary();
+      function multiplication() {
+        let node = unary();
         while (true) {
-          if (match("operator", "*")) {
-            const left = node;
-            const right = parseUnary();
-            node = makeNode(
-              x => left.evaluator(x) * right.evaluator(x),
-              mergeDenominators(left, right),
-              constantFromOperation(left, right, "*")
-            );
-          } else if (match("operator", "/")) {
-            const left = node;
-            const right = parseUnary();
-            node = makeNode(
-              x => left.evaluator(x) / right.evaluator(x),
-              [...mergeDenominators(left, right), right.evaluator],
-              constantFromOperation(left, right, "/")
-            );
-          } else {
-            break;
+          if (match('operator', '*')) node = binary('*', node, unary());
+          else if (match('operator', '/')) node = binary('/', node, unary());
+          else return node;
+        }
+      }
+      function unary() {
+        if (match('operator', '+')) return unary();
+        if (match('operator', '-')) return expressionNode('negate', { arg: unary() });
+        return power();
+      }
+      function power() {
+        const node = primary();
+        return match('operator', '^') ? binary('^', node, unary()) : node;
+      }
+      function primary() {
+        const token = tokens[position++];
+        if (!token) throw new Error('Fin inattendue de l’expression.');
+        if (token.type === 'number') return expressionNode('number', { value: token.value });
+        if (token.type === 'name') {
+          if (token.value === 'x') return expressionNode('variable', {});
+          if (Object.hasOwn(CONSTANTS, token.value)) return expressionNode('number', { value: CONSTANTS[token.value] });
+          if (Object.hasOwn(FUNCTIONS, token.value)) {
+            if (!match('leftParen')) throw new Error(`Une parenthèse est nécessaire après ${token.value}.`);
+            const arg = addition();
+            if (!match('rightParen')) throw new Error('Il manque une parenthèse fermante.');
+            return expressionNode('call', { name: token.value, arg });
           }
         }
-        return node;
-      }
-
-      function parseUnary() {
-        if (match("operator", "+")) return parseUnary();
-        if (match("operator", "-")) {
-          const value = parseUnary();
-          return makeNode(
-            x => -value.evaluator(x),
-            mergeDenominators(value),
-            value.constantValue === null ? null : -value.constantValue
-          );
-        }
-        return parsePower();
-      }
-
-      function parsePower() {
-        let node = parsePrimary();
-        if (match("operator", "^")) {
-          const base = node;
-          const exponent = parseUnary();
-          const extraDenominators = exponent.constantValue !== null && exponent.constantValue < 0 ? [base.evaluator] : [];
-          node = makeNode(
-            x => Math.pow(base.evaluator(x), exponent.evaluator(x)),
-            [...mergeDenominators(base, exponent), ...extraDenominators],
-            constantFromOperation(base, exponent, "^")
-          );
-        }
-        return node;
-      }
-
-      function parsePrimary() {
-        const token = consume();
-        if (!token) throw new Error("Unerwartetes Ende der Eingabe.");
-
-        if (token.type === "number") {
-          const value = token.value;
-          return makeNode(() => value, [], value);
-        }
-
-        if (token.type === "name") {
-          const name = token.value;
-
-          if (name === "x") return makeNode(x => x, [], null);
-
-          if (name in CONSTANTS) {
-            const value = CONSTANTS[name];
-            return makeNode(() => value, [], value);
-          }
-
-          if (name in FUNCTIONS) {
-            expect("leftParen", null, `Nach ${name} muss eine Klammer stehen, z. B. ${name}(x).`);
-            const argument = parseExpression();
-            expect("rightParen", null, `Bei ${name}(...) fehlt eine schließende Klammer.`);
-            const functionValue = FUNCTIONS[name];
-            const constantValue = argument.constantValue === null ? null : functionValue(argument.constantValue);
-            return makeNode(
-              x => functionValue(argument.evaluator(x)),
-              mergeDenominators(argument),
-              Number.isFinite(constantValue) ? constantValue : null
-            );
-          }
-        }
-
-        if (token.type === "leftParen") {
-          const node = parseExpression();
-          expect("rightParen", null, "Es fehlt eine schließende Klammer.");
+        if (token.type === 'leftParen') {
+          const node = addition();
+          if (!match('rightParen')) throw new Error('Il manque une parenthèse fermante.');
           return node;
         }
-
-        throw new Error("Die Funktion konnte an einer Stelle nicht gelesen werden.");
+        throw new Error('Une partie de l’expression ne peut pas être interprétée.');
       }
+      const ast = addition();
+      if (position !== tokens.length) throw new Error('Des caractères invalides suivent la fonction.');
+      return { ast, evaluator: ast.evaluator, denominators: ast.denominators };
+    }
 
-      const root = parseExpression();
-      if (position < tokens.length) throw new Error("Nach dem Ende der Funktion stehen noch ungültige Zeichen.");
-      return {
-        evaluator: root.evaluator,
-        denominators: root.denominators || []
-      };
+    const ALL_REAL = [{ lo: -Infinity, hi: Infinity, lc: false, hc: false }];
+    function interval(lo, hi, lc = false, hc = false) {
+      return { lo, hi, lc: Number.isFinite(lo) && lc, hc: Number.isFinite(hi) && hc };
+    }
+    function pointSet(x) { return [interval(x, x, true, true)]; }
+    function closeNumber(a, b, tolerance = 3e-10) {
+      return a === b || (Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= tolerance * Math.max(1, Math.abs(a), Math.abs(b)));
+    }
+    function normalizeSet(parts) {
+      const sorted = parts.filter(i => !Number.isNaN(i.lo) && !Number.isNaN(i.hi) &&
+        (i.lo < i.hi || (i.lo === i.hi && i.lc && i.hc))).map(i => ({ ...i })).sort((a, b) => a.lo - b.lo || Number(b.lc) - Number(a.lc));
+      const out = [];
+      for (const item of sorted) {
+        const last = out[out.length - 1];
+        if (!last || item.lo > last.hi || (item.lo === last.hi && !(item.lc || last.hc))) out.push(item);
+        else {
+          if (item.lo === last.lo) last.lc ||= item.lc;
+          if (item.hi > last.hi) { last.hi = item.hi; last.hc = item.hc; }
+          else if (item.hi === last.hi) last.hc ||= item.hc;
+        }
+      }
+      return out;
+    }
+    function intersectSets(a, b) {
+      if (a === null || b === null) return null;
+      const out = [];
+      for (const x of a) for (const y of b) {
+        const lo = Math.max(x.lo, y.lo), hi = Math.min(x.hi, y.hi);
+        const lc = (lo !== x.lo || x.lc) && (lo !== y.lo || y.lc);
+        const hc = (hi !== x.hi || x.hc) && (hi !== y.hi || y.hc);
+        out.push(interval(lo, hi, lc, hc));
+      }
+      return normalizeSet(out);
+    }
+    function setContains(set, x, fuzzy = false) {
+      if (!Number.isFinite(x) || set === null) return false;
+      return set.some(i => {
+        const atLo = fuzzy ? closeNumber(x, i.lo, 2e-10) : x === i.lo;
+        const atHi = fuzzy ? closeNumber(x, i.hi, 2e-10) : x === i.hi;
+        return (atLo ? i.lc : x > i.lo) && (atHi ? i.hc : x < i.hi);
+      });
+    }
+    function withoutPoints(set, points) {
+      if (set === null) return null;
+      let out = set;
+      for (const x of uniqueNumbers(points)) {
+        out = intersectSets(out, [interval(-Infinity, x), interval(x, Infinity)]);
+      }
+      return out;
+    }
+    function affineSet(set, a, b) {
+      if (set === null) return null;
+      if (a === 0) return set.length ? pointSet(b) : [];
+      return normalizeSet(set.map(i => a > 0 ? interval(a * i.lo + b, a * i.hi + b, i.lc, i.hc)
+        : interval(a * i.hi + b, a * i.lo + b, i.hc, i.lc)));
+    }
+    function monotoneSet(set, fn, increasing = true) {
+      if (set === null) return null;
+      return normalizeSet(set.map(i => increasing ? interval(fn(i.lo), fn(i.hi), i.lc, i.hc)
+        : interval(fn(i.hi), fn(i.lo), i.hc, i.lc)));
+    }
+    function reciprocalSet(set) {
+      if (set === null) return null;
+      const negative = intersectSets(set, [interval(-Infinity, 0)]);
+      const positive = intersectSets(set, [interval(0, Infinity)]);
+      return normalizeSet([
+        ...negative.map(i => interval(i.hi === 0 ? -Infinity : 1 / i.hi, i.lo === -Infinity ? 0 : 1 / i.lo, i.hc, i.lc)),
+        ...positive.map(i => interval(i.hi === Infinity ? 0 : 1 / i.hi, i.lo === 0 ? Infinity : 1 / i.lo, i.hc, i.lc))
+      ]);
+    }
+    function uniqueNumbers(values) {
+      return values.filter(Number.isFinite).sort((a, b) => a - b).filter((v, i, arr) => !i || !closeNumber(v, arr[i - 1], 2e-9));
+    }
+    function probeInterval(lo, hi) {
+      if (lo === -Infinity && hi === Infinity) return 0;
+      if (lo === -Infinity) return hi - Math.max(1, Math.abs(hi) + 1);
+      if (hi === Infinity) return lo + Math.max(1, Math.abs(lo) + 1);
+      return lo + (hi - lo) / 2;
+    }
+
+
+
+    function pTrim(p) {
+      const out = [...p];
+      while (out.length > 1 && out[out.length - 1] === 0) out.pop();
+      return out;
+    }
+    function pZero(p) { return p.length === 1 && p[0] === 0; }
+    function pAdd(a, b, sign = 1) {
+      return pTrim(Array.from({ length: Math.max(a.length, b.length) }, (_, i) => (a[i] || 0) + sign * (b[i] || 0)));
+    }
+    function pScale(p, c) { return pTrim(p.map(v => v * c)); }
+    function pMul(a, b) {
+      const out = Array(a.length + b.length - 1).fill(0);
+      a.forEach((x, i) => b.forEach((y, j) => out[i + j] += x * y));
+      return pTrim(out);
+    }
+    function pPow(p, n) { let out = [1]; for (let i = 0; i < n; i++) out = pMul(out, p); return out; }
+    function pDeriv(p) { return p.length <= 1 ? [0] : p.slice(1).map((c, i) => c * (i + 1)); }
+    function pEval(p, x) { return p.reduceRight((v, c) => v * x + c, 0); }
+    function pMagnitude(p, x) { return p.reduceRight((v, c) => v * Math.abs(x) + Math.abs(c), 0); }
+    function pNearZero(p, x) { return Math.abs(pEval(p, x)) <= 3e-12 * Math.max(Number.MIN_VALUE, pMagnitude(p, x)); }
+    const rationalCache = new WeakMap();
+    function asRational(node) {
+      if (rationalCache.has(node)) return rationalCache.get(node);
+      let out = null;
+      if (node.kind === 'number') out = { p: [node.value], q: [1] };
+      else if (node.kind === 'variable') out = { p: [0, 1], q: [1] };
+      else if (node.kind === 'negate') {
+        const r = asRational(node.arg); if (r) out = { p: pScale(r.p, -1), q: r.q };
+      } else if (node.constantValue !== null && Number.isFinite(node.constantValue)) out = { p: [node.constantValue], q: [1] };
+      else if (node.kind === 'binary') {
+        const a = asRational(node.left), b = asRational(node.right);
+        if (a && b) {
+          if (node.op === '+') out = { p: pAdd(pMul(a.p, b.q), pMul(b.p, a.q)), q: pMul(a.q, b.q) };
+          if (node.op === '-') out = { p: pAdd(pMul(a.p, b.q), pMul(b.p, a.q), -1), q: pMul(a.q, b.q) };
+          if (node.op === '*') out = { p: pMul(a.p, b.p), q: pMul(a.q, b.q) };
+          if (node.op === '/') out = { p: pMul(a.p, b.q), q: pMul(a.q, b.p) };
+          const n = node.right.constantValue;
+          if (node.op === '^' && Number.isInteger(n) && Math.abs(n) <= 12) {
+            out = n >= 0 ? { p: pPow(a.p, n), q: pPow(a.q, n) } : { p: pPow(a.q, -n), q: pPow(a.p, -n) };
+          }
+        }
+      }
+      if (out && (out.p.length > 13 || out.q.length > 13 || ![...out.p, ...out.q].every(Number.isFinite))) out = null;
+      rationalCache.set(node, out); return out;
+    }
+    const rootsCache = new Map();
+    function polynomialRoots(input) {
+      const p = pTrim(input), key = p.join(',');
+      if (rootsCache.has(key)) return rootsCache.get(key);
+      const finish = r => { if (rootsCache.size > 800) rootsCache.clear(); rootsCache.set(key, r); return r; };
+      const n = p.length - 1;
+      if (n === 0) return finish([]);
+      if (n > 12 || !p.every(Number.isFinite)) return finish(null);
+      if (n === 1) return finish([-p[0] / p[1]]);
+      if (n === 2) {
+        const [c, b, a] = p, discriminant = b * b - 4 * a * c;
+        if (!Number.isFinite(discriminant)) return finish(null);
+        if (discriminant < 0) return finish([]);
+        if (discriminant === 0) return finish([-b / (2 * a)]);
+        const q = -0.5 * (b + (b < 0 ? -1 : 1) * Math.sqrt(discriminant));
+        return finish(uniqueNumbers([q / a, c / q]));
+      }
+      const critical = polynomialRoots(pDeriv(p));
+      if (critical === null) return finish(null);
+      const bound = 1 + Math.max(...p.slice(0, -1).map(c => Math.abs(c / p[n])));
+      if (!Number.isFinite(bound) || bound > 1e12) return finish(null);
+      const split = [-bound, ...critical.filter(v => v > -bound && v < bound), bound];
+      const roots = critical.filter(x => pNearZero(p, x));
+      for (let i = 0; i < split.length - 1; i++) {
+        let a = split[i], b = split[i + 1], fa = pEval(p, a), fb = pEval(p, b);
+        if (!Number.isFinite(fa) || !Number.isFinite(fb)) return finish(null);
+        if (pNearZero(p, a) || pNearZero(p, b) || Math.sign(fa) === Math.sign(fb)) continue;
+        for (let j = 0; j < 110; j++) {
+          const m = a + (b - a) / 2, fm = pEval(p, m);
+          if (m === a || m === b || fm === 0) { a = b = m; break; }
+          if (Math.sign(fa) === Math.sign(fm)) { a = m; fa = fm; } else b = m;
+        }
+        roots.push(a + (b - a) / 2);
+      }
+      return finish(uniqueNumbers(roots));
+    }
+    function rationalPreimage(r, target) {
+      if (pZero(r.q)) return [];
+      const qRoots = polynomialRoots(r.q);
+      if (qRoots === null) return null;
+      let cuts = [...qRoots];
+      for (const part of target) for (const value of [part.lo, part.hi]) {
+        if (!Number.isFinite(value)) continue;
+        const eq = pAdd(r.p, pScale(r.q, value), -1);
+        const roots = polynomialRoots(eq);
+        if (roots === null) return null;
+        cuts.push(...roots);
+      }
+      cuts = uniqueNumbers(cuts);
+      const split = [-Infinity, ...cuts, Infinity], out = [];
+      for (let i = 0; i < split.length - 1; i++) {
+        const x = probeInterval(split[i], split[i + 1]);
+        if (setContains(target, pEval(r.p, x) / pEval(r.q, x))) out.push(interval(split[i], split[i + 1]));
+      }
+      for (const x of cuts) {
+        if (qRoots.some(r0 => closeNumber(x, r0))) continue;
+
+        let y = pEval(r.p, x) / pEval(r.q, x);
+        for (const part of target) for (const v of [part.lo, part.hi]) {
+          if (Number.isFinite(v) && pNearZero(pAdd(r.p, pScale(r.q, v), -1), x)) y = v;
+        }
+        if (setContains(target, y)) out.push(interval(x, x, true, true));
+      }
+      return normalizeSet(out);
+    }
+
+    function powerPreimage(target, exponent) {
+      if (exponent === 0) return setContains(target, 1) ? withoutPoints(ALL_REAL, [0]) : [];
+      if (exponent < 0) return powerPreimage(reciprocalSet(target), -exponent);
+      const fraction = rationalExponent(exponent);
+      const positive = intersectSets(target, [interval(0, Infinity, true)]);
+      const inverse = v => v === Infinity ? Infinity : Math.pow(v, 1 / exponent);
+      if (!fraction || fraction.q % 2 === 0) return monotoneSet(positive, inverse);
+      if (Math.abs(fraction.p) % 2 === 0) {
+        const pos = monotoneSet(positive, inverse);
+        return normalizeSet([...pos, ...affineSet(pos, -1, 0)]);
+      }
+      return monotoneSet(target, v => Math.sign(v) * Math.pow(Math.abs(v), 1 / exponent));
+    }
+    function preimage(node, target, depth = 0) {
+      if (target === null || depth > 32) return null;
+      if (!target.length) return [];
+      if (target.length === 1 && target[0].lo === -Infinity && target[0].hi === Infinity) return ALL_REAL;
+      const r = asRational(node);
+      if (r) return rationalPreimage(r, target);
+      if (node.kind === 'negate') return preimage(node.arg, affineSet(target, -1, 0), depth + 1);
+      if (node.kind === 'binary') {
+        const { left, right, op } = node, a = left.constantValue, b = right.constantValue;
+        if (b !== null && Number.isFinite(b)) {
+          if (op === '+') return preimage(left, affineSet(target, 1, -b), depth + 1);
+          if (op === '-') return preimage(left, affineSet(target, 1, b), depth + 1);
+          if (op === '*' && b !== 0) return preimage(left, affineSet(target, 1 / b, 0), depth + 1);
+          if (op === '*' && b === 0) return setContains(target, 0) ? ALL_REAL : [];
+          if (op === '/' && b !== 0) return preimage(left, affineSet(target, b, 0), depth + 1);
+          if (op === '^') return preimage(left, powerPreimage(target, b), depth + 1);
+        }
+        if (a !== null && Number.isFinite(a)) {
+          if (op === '+') return preimage(right, affineSet(target, 1, -a), depth + 1);
+          if (op === '-') return preimage(right, affineSet(target, -1, a), depth + 1);
+          if (op === '*' && a !== 0) return preimage(right, affineSet(target, 1 / a, 0), depth + 1);
+          if (op === '*' && a === 0) return setContains(target, 0) ? ALL_REAL : [];
+          if (op === '/' && a !== 0) return preimage(right, affineSet(reciprocalSet(target), a, 0), depth + 1);
+          if (op === '/' && a === 0) return setContains(target, 0) ? ALL_REAL : [];
+          if (op === '^' && a === 1) return setContains(target, 1) ? ALL_REAL : [];
+          if (op === '^' && a > 0 && a !== 1) {
+            const pos = intersectSets(target, [interval(0, Infinity)]);
+            const inv = monotoneSet(pos, v => Math.log(v) / Math.log(a), a > 1);
+            return preimage(right, inv, depth + 1);
+          }
+        }
+      }
+      if (node.kind === 'call') {
+        const { name, arg } = node;
+        let inv = null;
+        if (name === 'exp') inv = monotoneSet(intersectSets(target, [interval(0, Infinity)]), Math.log);
+        if (name === 'ln') {
+          if (target.some(i => [i.lo, i.hi].some(v => Number.isFinite(v) && (!Number.isFinite(Math.exp(v)) || Math.exp(v) === 0)))) return null;
+          inv = monotoneSet(target, Math.exp);
+        }
+        if (name === 'log') {
+          if (target.some(i => [i.lo, i.hi].some(v => Number.isFinite(v) && (!Number.isFinite(Math.pow(10, v)) || Math.pow(10, v) === 0)))) return null;
+          inv = monotoneSet(target, v => Math.pow(10, v));
+        }
+        if (name === 'sqrt') inv = monotoneSet(intersectSets(target, [interval(0, Infinity, true)]), v => v * v);
+        if (name === 'abs') {
+          const pos = intersectSets(target, [interval(0, Infinity, true)]);
+          inv = normalizeSet([...pos, ...affineSet(pos, -1, 0)]);
+        }
+        if (name === 'atan') inv = monotoneSet(intersectSets(target, [interval(-Math.PI / 2, Math.PI / 2)]), v => v === -Math.PI / 2 ? -Infinity : v === Math.PI / 2 ? Infinity : Math.tan(v));
+        if (name === 'asin') inv = monotoneSet(intersectSets(target, [interval(-Math.PI / 2, Math.PI / 2, true, true)]), Math.sin);
+        if (name === 'acos') inv = monotoneSet(intersectSets(target, [interval(0, Math.PI, true, true)]), Math.cos, false);
+        if (inv !== null) return preimage(arg, inv, depth + 1);
+      }
+      return null;
+    }
+
+    function nodeText(node) {
+      if (node.kind === 'number') return mathNumber(node.value).text;
+      if (node.kind === 'variable') return 'x';
+      if (node.kind === 'negate') return '−(' + nodeText(node.arg) + ')';
+      if (node.kind === 'call') return node.name + '(' + nodeText(node.arg) + ')';
+      return '(' + nodeText(node.left) + ' ' + node.op + ' ' + nodeText(node.right) + ')';
+    }
+    function linearCoefficients(node) {
+      const r = asRational(node);
+      if (!r || r.p.length > 2 || r.q.length !== 1 || r.q[0] === 0) return null;
+      return { a: (r.p[1] || 0) / r.q[0], b: r.p[0] / r.q[0] };
+    }
+    function trigPattern(node, poles = false) {
+      if (node.kind !== 'call' || !['sin', 'cos', 'tan'].includes(node.name)) return null;
+      const lin = linearCoefficients(node.arg);
+      if (!lin || lin.a === 0) return null;
+      const offset = (poles || node.name === 'cos' ? Math.PI / 2 : 0) - lin.b;
+      return { offset: offset / lin.a, period: Math.PI / Math.abs(lin.a) };
+    }
+    function periodicHas(pattern, x) {
+      const k = (x - pattern.offset) / pattern.period;
+      return Math.abs(k - Math.round(k)) < 3e-12;
+    }
+    function periodicPoints(pattern, lo, hi, cap = 300) {
+      const first = Math.ceil((lo - pattern.offset) / pattern.period - 1e-11);
+      const last = Math.floor((hi - pattern.offset) / pattern.period + 1e-11);
+      if (!Number.isFinite(first) || !Number.isFinite(last) || last - first > cap) return [];
+      return Array.from({ length: Math.max(0, last - first + 1) }, (_, i) => pattern.offset + (first + i) * pattern.period);
+    }
+    function analyzeDomain(ast) {
+      let set = ALL_REAL, uncertain = false;
+      const conditions = [], periodic = [];
+      function restrict(expr, target, description) {
+        conditions.push(description);
+        const result = preimage(expr, target);
+        if (result === null) {
+          const pat = trigPattern(expr);
+          const excludesZero = target.length === 2 && target[0].hi === 0 && target[1].lo === 0 && !target[0].hc && !target[1].lc;
+          if (pat && excludesZero) periodic.push(pat); else uncertain = true;
+        } else set = intersectSets(set, result);
+      }
+      function walk(node) {
+        if (node.kind === 'number' || node.kind === 'variable') return;
+        if (node.kind === 'negate') return walk(node.arg);
+        if (node.kind === 'binary') {
+          walk(node.left); walk(node.right);
+          if (node.op === '/') restrict(node.right, withoutPoints(ALL_REAL, [0]), nodeText(node.right) + ' ≠ 0');
+          if (node.op === '^') {
+            const n = node.right.constantValue;
+            if (n === null) {
+
+
+              const a = node.left.constantValue;
+              if (!(a > 0)) { uncertain = true; conditions.push(nodeText(node) + ' est défini dans les réels'); }
+            } else {
+              const frac = rationalExponent(n);
+              if (Number.isInteger(n)) {
+                if (n <= 0) restrict(node.left, withoutPoints(ALL_REAL, [0]), nodeText(node.left) + ' ≠ 0');
+              } else if (!frac || frac.q % 2 === 0) {
+                restrict(node.left, [interval(0, Infinity, n > 0)], nodeText(node.left) + (n > 0 ? ' ≥ 0' : ' > 0'));
+              } else if (n < 0) restrict(node.left, withoutPoints(ALL_REAL, [0]), nodeText(node.left) + ' ≠ 0');
+            }
+          }
+          return;
+        }
+        walk(node.arg);
+        const text = nodeText(node.arg);
+        if (node.name === 'sqrt') restrict(node.arg, [interval(0, Infinity, true)], text + ' ≥ 0');
+        if (node.name === 'ln' || node.name === 'log') restrict(node.arg, [interval(0, Infinity)], text + ' > 0');
+        if (node.name === 'asin' || node.name === 'acos') restrict(node.arg, [interval(-1, 1, true, true)], '−1 ≤ ' + text + ' ≤ 1');
+        if (node.name === 'tan') {
+          conditions.push('cos(' + text + ') ≠ 0');
+          const pat = trigPattern(node, true);
+          if (pat) periodic.push(pat);
+          else if (node.arg.constantValue === null) uncertain = true;
+          else if (Math.abs(Math.cos(node.arg.constantValue)) < 4e-15) set = [];
+        }
+      }
+      walk(ast);
+      if (!set.length) uncertain = false;
+      return { set, known: !uncertain, periodic, conditions: [...new Set(conditions)] };
+    }
+    function domainAllows(domain, x, fuzzy = false) {
+      return setContains(domain.set, x, fuzzy) && !domain.periodic.some(p => periodicHas(p, x));
+    }
+    function domainViewSet(domain, lo, hi) {
+      if (!domain.known) return null;
+      let set = domain.set;
+      for (const p of domain.periodic) {
+        if ((hi - lo) / p.period > 300) return null;
+        set = withoutPoints(set, periodicPoints(p, lo, hi));
+      }
+      return set;
+    }
+
+    function rationalLimit(r, x, side) {
+      if (!Number.isFinite(x)) {
+        if (pZero(r.p)) return 0;
+        const degree = r.p.length - r.q.length, coefficient = r.p.at(-1) / r.q.at(-1);
+        if (degree < 0) return 0;
+        if (degree === 0) return coefficient;
+        return Math.sign(coefficient) * (x < 0 && degree % 2 ? -1 : 1) * Infinity;
+      }
+      function leading(p) {
+        let d = p, order = 0, factorial = 1;
+        while (d.length > 1 && pNearZero(d, x)) { d = pDeriv(d); order++; factorial *= order; }
+        return { order, value: pEval(d, x) / factorial };
+      }
+      if (pZero(r.q)) return NaN;
+      if (pZero(r.p)) return 0;
+      const a = leading(r.p), b = leading(r.q), diff = a.order - b.order;
+      if (diff > 0) return 0;
+      if (diff === 0) return a.value / b.value;
+      return Math.sign(a.value / b.value) * (side < 0 && Math.abs(diff) % 2 ? -1 : 1) * Infinity;
+    }
+    function rationalImage(r, domainSet) {
+      if (domainSet === null) return null;
+      if (!domainSet.length || pZero(r.q)) return [];
+      const derivative = pAdd(pMul(pDeriv(r.p), r.q), pMul(r.p, pDeriv(r.q)), -1);
+      const crit = polynomialRoots(derivative);
+      if (crit === null) return null;
+      const out = [];
+      for (const part of domainSet) {
+        if (part.lo === part.hi) {
+          const v = rationalLimit(r, part.lo, 1);
+          if (Number.isFinite(v)) out.push(interval(v, v, true, true));
+          continue;
+        }
+        if (pZero(derivative)) {
+          const x = probeInterval(part.lo, part.hi), value = pEval(r.p, x) / pEval(r.q, x);
+          if (Number.isFinite(value)) out.push(interval(value, value, true, true));
+          continue;
+        }
+        const split = [part.lo, ...crit.filter(x => x > part.lo && x < part.hi), part.hi];
+        for (let k = 0; k < split.length - 1; k++) {
+          let a = rationalLimit(r, split[k], 1), b = rationalLimit(r, split[k + 1], -1);
+          const lc = k > 0 || part.lc, hc = k < split.length - 2 || part.hc;
+          if (Number.isNaN(a) || Number.isNaN(b)) return null;
+
+          for (const prev of out) for (const v of [prev.lo, prev.hi]) {
+            if (closeNumber(a, v, 2e-12)) a = v;
+            if (closeNumber(b, v, 2e-12)) b = v;
+          }
+          if (a === b) { if (Number.isFinite(a)) out.push(interval(a, a, true, true)); }
+          else out.push(a < b ? interval(a, b, lc, hc) : interval(b, a, hc, lc));
+        }
+      }
+      return normalizeSet(out);
+    }
+    function sineImage(set, cosine = false) {
+      if (set === null) return null;
+      const result = [];
+      for (let part of set) {
+        if (cosine) part = affineSet([part], 1, Math.PI / 2)[0];
+        if (!Number.isFinite(part.lo) || !Number.isFinite(part.hi) || part.hi - part.lo > 2 * Math.PI) {
+          result.push(interval(-1, 1, true, true)); continue;
+        }
+        const vals = [{ v: Math.sin(part.lo), closed: part.lc }, { v: Math.sin(part.hi), closed: part.hc }];
+        const k0 = Math.ceil((part.lo - Math.PI / 2) / Math.PI), k1 = Math.floor((part.hi - Math.PI / 2) / Math.PI);
+        for (let k = k0; k <= k1; k++) {
+          const x = Math.PI / 2 + k * Math.PI;
+          if (setContains([part], x, true)) vals.push({ v: k % 2 === 0 ? 1 : -1, closed: true });
+        }
+        const lo = Math.min(...vals.map(o => o.v)), hi = Math.max(...vals.map(o => o.v));
+        result.push(interval(lo, hi, vals.some(o => o.v === lo && o.closed), vals.some(o => o.v === hi && o.closed)));
+      }
+      return normalizeSet(result);
+    }
+    function powerImage(set, n) {
+      if (set === null) return null;
+      if (n === 0) return withoutPoints(set, [0]).length ? pointSet(1) : [];
+      if (n < 0) return reciprocalSet(powerImage(set, -n));
+      if (set.some(i => [i.lo, i.hi].some(v => Number.isFinite(v) && v !== 0 && (!Number.isFinite(Math.pow(Math.abs(v), n)) || Math.pow(Math.abs(v), n) === 0)))) return null;
+      const frac = rationalExponent(n);
+      if (!frac || frac.q % 2 === 0) return monotoneSet(intersectSets(set, [interval(0, Infinity, true)]), x => Math.pow(x, n));
+      if (frac.p % 2) return monotoneSet(set, x => Math.sign(x) * Math.pow(Math.abs(x), n));
+      const pos = intersectSets(set, [interval(0, Infinity, true)]), neg = intersectSets(set, [interval(-Infinity, 0, false, true)]);
+      return normalizeSet([...monotoneSet(pos, x => Math.pow(x, n)), ...monotoneSet(neg, x => Math.pow(-x, n), false)]);
+    }
+    function elementaryImage(name, set) {
+      if (set === null) return null;
+      if (name === 'exp') {
+        if (set.some(i => [i.lo, i.hi].some(v => Number.isFinite(v) && (!Number.isFinite(Math.exp(v)) || Math.exp(v) === 0)))) return null;
+        return monotoneSet(set, Math.exp);
+      }
+      if (name === 'ln' || name === 'log') return monotoneSet(intersectSets(set, [interval(0, Infinity)]), name === 'ln' ? Math.log : Math.log10);
+      if (name === 'sqrt') return monotoneSet(intersectSets(set, [interval(0, Infinity, true)]), Math.sqrt);
+      if (name === 'abs') {
+        return normalizeSet([...intersectSets(set, [interval(0, Infinity, true)]), ...affineSet(intersectSets(set, [interval(-Infinity, 0, false, true)]), -1, 0)]);
+      }
+      if (name === 'sin' || name === 'cos') return sineImage(set, name === 'cos');
+      if (name === 'atan') return monotoneSet(set, Math.atan);
+      if (name === 'asin' || name === 'acos') return monotoneSet(intersectSets(set, [interval(-1, 1, true, true)]), name === 'asin' ? Math.asin : Math.acos, name === 'asin');
+      if (name === 'tan') {
+        const out = [];
+        for (const part of set) {
+          if (!Number.isFinite(part.lo) || !Number.isFinite(part.hi) || part.hi - part.lo > Math.PI) return ALL_REAL;
+          const poles = periodicPoints({ offset: Math.PI / 2, period: Math.PI }, part.lo, part.hi);
+          const split = [part.lo, ...poles.filter(v => v > part.lo && v < part.hi), part.hi];
+          for (let k = 0; k < split.length - 1; k++) {
+            const isPole = x => periodicHas({ offset: Math.PI / 2, period: Math.PI }, x);
+            out.push(interval(isPole(split[k]) ? -Infinity : Math.tan(split[k]), isPole(split[k + 1]) ? Infinity : Math.tan(split[k + 1]), k === 0 && part.lc, k === split.length - 2 && part.hc));
+          }
+        }
+        return normalizeSet(out);
+      }
+      return null;
+    }
+    function globalImage(node, domain, depth = 0) {
+      if (!domain.known || depth > 32) return null;
+      if (!domain.set.length) return [];
+      const r = asRational(node);
+      if (r && !domain.periodic.length) return rationalImage(r, domain.set);
+      const sub = n => globalImage(n, domain, depth + 1);
+      if (node.kind === 'negate') return affineSet(sub(node.arg), -1, 0);
+      if (node.kind === 'binary') {
+        const { left, right, op } = node, a = left.constantValue, b = right.constantValue;
+        if (b !== null && Number.isFinite(b)) {
+          if (op === '+') return affineSet(sub(left), 1, b);
+          if (op === '-') return affineSet(sub(left), 1, -b);
+          if (op === '*') return b === 0 ? pointSet(0) : affineSet(sub(left), b, 0);
+          if (op === '/' && b !== 0) return affineSet(sub(left), 1 / b, 0);
+          if (op === '^') return powerImage(sub(left), b);
+        }
+        if (a !== null && Number.isFinite(a)) {
+          if (op === '+') return affineSet(sub(right), 1, a);
+          if (op === '-') return affineSet(sub(right), -1, a);
+          if (op === '*') return a === 0 ? pointSet(0) : affineSet(sub(right), a, 0);
+          if (op === '/') return a === 0 ? pointSet(0) : affineSet(reciprocalSet(sub(right)), a, 0);
+          if (op === '^' && a > 0) {
+            if (a === 1) return pointSet(1);
+            return monotoneSet(sub(right), v => Math.pow(a, v), a > 1);
+          }
+        }
+      }
+      if (node.kind === 'call') {
+
+        const pat = trigPattern(node, true);
+        if (node.name === 'tan' && pat && domain.periodic.length === 1 &&
+            closeNumber(domain.periodic[0].period, pat.period) && periodicHas(domain.periodic[0], pat.offset) &&
+            domain.set.some(i => !Number.isFinite(i.lo) || !Number.isFinite(i.hi) || i.hi - i.lo > 2 * pat.period)) return ALL_REAL;
+        return elementaryImage(node.name, sub(node.arg));
+      }
+      return null;
+    }
+
+    function mathNumber(v) {
+      if (v === Infinity) return { text: '+∞', approx: false };
+      if (v === -Infinity) return { text: '−∞', approx: false };
+      if (Object.is(v, -0) || v === 0) return { text: '0', approx: false };
+      for (let q = 1; q <= 100; q++) {
+        const p = Math.round(v * q);
+        if (p !== 0 && Math.abs(v - p / q) < 3e-12 * Math.max(1, Math.abs(v)) && Math.abs(p) < 1e9) {
+          return { text: (p < 0 ? '−' : '') + Math.abs(p) + (q === 1 ? '' : '/' + q), approx: false };
+        }
+      }
+      for (let q = 1; q <= 12; q++) {
+        const p = Math.round(v / Math.PI * q);
+        if (p !== 0 && Math.abs(v - p * Math.PI / q) < 3e-12 * Math.max(1, Math.abs(v))) {
+          return { text: (p < 0 ? '−' : '') + (Math.abs(p) === 1 ? '' : Math.abs(p)) + 'π' + (q === 1 ? '' : '/' + q), approx: false };
+        }
+      }
+      return { text: Number(v.toPrecision(6)).toString().replace('-', '−').replace('.', ','), approx: true };
+    }
+    function formattedSet(set) {
+      if (set === null) return { text: 'non déterminé intégralement', approx: false };
+      if (!set.length) return { text: '∅', approx: false };
+      let approx = false;
+      const num = v => { const f = mathNumber(v); approx ||= f.approx; return f.text; };
+      if (set.length === 1 && set[0].lo === -Infinity && set[0].hi === Infinity) return { text: 'ℝ', approx: false };
+
+      if (set[0].lo === -Infinity && set.at(-1).hi === Infinity && set.every((i, k) => k === set.length - 1 || (i.hi === set[k + 1].lo && !i.hc && !set[k + 1].lc))) {
+        const text = 'ℝ \\ {' + set.slice(0, -1).map(i => num(i.hi)).join(' ; ') + '}';
+        return { text, approx };
+      }
+      if (set.every(i => i.lo === i.hi)) return { text: '{' + set.map(i => num(i.lo)).join(' ; ') + '}', approx };
+      const text = set.map(i => i.lo === i.hi ? '{' + num(i.lo) + '}' :
+        (i.lc ? '[' : ']') + num(i.lo) + ' ; ' + num(i.hi) + (i.hc ? ']' : '[')).join(' ∪ ');
+      return { text, approx };
+    }
+    function patternText(p) {
+      const o = mathNumber(p.offset), step = mathNumber(p.period);
+      const multiple = step.text === 'π' ? 'kπ' : 'k·(' + step.text + ')';
+      return (closeNumber(p.offset, 0) ? multiple : o.text + ' + ' + multiple) + ' | k ∈ ℤ';
+    }
+    function domainDescription(d) {
+      if (!d.known) return { text: '{x ∈ ℝ | ' + (d.conditions.join(' et ') || 'f(x) est défini dans les réels') + '}', approx: false, conditional: true };
+      const base = formattedSet(d.set);
+      if (!d.periodic.length || !d.set.length) return base;
+      return { text: (d.set.length > 1 ? '(' + base.text + ')' : base.text) + ' \\ {' + d.periodic.map(patternText).join(' ou ') + '}', approx: base.approx };
+    }
+    function symbolicRoots(ast, domain) {
+      const roots = preimage(ast, pointSet(0));
+      if (roots !== null && domain.known && !domain.periodic.length) {
+        const result = intersectSets(roots, domain.set);
+        return { global: true, set: result.filter(i => i.lo !== i.hi || domainAllows(domain, i.lo, true)), periodic: null };
+      }
+      const pattern = trigPattern(ast);
+      if (pattern && domain.known) return { global: true, set: null, periodic: pattern };
+      return { global: false, set: null, periodic: null };
+    }
+    function analyzeFunction(ast) {
+      const domain = analyzeDomain(ast);
+      let image = null, roots = null;
+      try { image = globalImage(ast, domain); } catch { image = null; }
+      try { roots = symbolicRoots(ast, domain); } catch { roots = { global: false, set: null, periodic: null }; }
+      if (image !== null && !setContains(image, 0)) roots = { global: true, set: [], periodic: null };
+      return { ast, domain, image, roots, domainText: domainDescription(domain), imageText: formattedSet(image) };
     }
 
     function sampleFunction(evaluator, xMin, xMax, count) {
@@ -905,8 +1427,7 @@
       const yRange = Math.max(1e-9, yMax - yMin);
       const yAt = evaluateFinite(evaluator, x0, 1e10);
 
-      // Wenn der Funktionswert wirklich existiert und der Punkt nicht aus einem Nenner stammt,
-      // ist es keine Definitionslücke.
+
       if (Number.isFinite(yAt) && candidate.source !== "denominator") return null;
 
       const baseDelta = Math.max(xRange / 800, 1e-7 * Math.max(1, Math.abs(x0)));
@@ -966,12 +1487,12 @@
 
       if (holes.length > 0) {
         const text = holes.slice(0, 4).map(point => `x = ${formatNumber(point.x)}`).join(", ");
-        parts.push(`${holes.length === 1 ? "Lücke" : "Lücken"} bei ${text}${holes.length > 4 ? " …" : ""}`);
+        parts.push(`${holes.length === 1 ? "Trou" : "Trous"} en ${text}${holes.length > 4 ? " …" : ""}`);
       }
 
       if (asymptotes.length > 0) {
         const text = asymptotes.slice(0, 4).map(point => `x = ${formatNumber(point.x)}`).join(", ");
-        parts.push(`${asymptotes.length === 1 ? "Polstelle" : "Polstellen"} bei ${text}${asymptotes.length > 4 ? " …" : ""}`);
+        parts.push(`${asymptotes.length === 1 ? "Asymptote verticale" : "Asymptotes verticales"} en ${text}${asymptotes.length > 4 ? " …" : ""}`);
       }
 
       return parts.join(" · ");
@@ -988,7 +1509,7 @@
     }
 
     function autoYRange(finiteY) {
-      if (finiteY.length < 2) throw new Error("Für diesen x-Bereich gibt es zu wenige gültige y-Werte.");
+      if (finiteY.length < 2) throw new Error("Trop peu de valeurs de y valides dans cet intervalle de x.");
 
       const sorted = [...finiteY].sort((a, b) => a - b);
       const rawMin = sorted[0];
@@ -1001,9 +1522,8 @@
         yMax = rawMax;
       }
 
-      // Normalerweise wird der ganze Wertebereich genutzt.
-      // Nur bei sehr großen Ausreißern, z. B. in der Nähe von Polstellen,
-      // schneiden wir die äußersten 2 % ab, damit der Graph lesbar bleibt.
+
+
       const rawRange = rawMax - rawMin;
       const percentileRange = yMax - yMin;
       if (Number.isFinite(rawRange) && Number.isFinite(percentileRange) && rawRange <= percentileRange * 3.2) {
@@ -1050,8 +1570,8 @@
       if (equalScaleCheckbox.checked && width > 0 && height > 0) {
         const xRange = xMax - xMin;
         const yRange = yMax - yMin;
-        // Gleich viele Koordinateneinheiten pro Bildschirmpixel auf beiden Achsen.
-        // Nur erweitern, nicht beschneiden: Der bisherige Ausschnitt bleibt sichtbar.
+
+
         const unitsPerPixel = Math.max(xRange / width, yRange / height);
         const centerX = xMin + xRange / 2;
         const centerY = yMin + yRange / 2;
@@ -1068,8 +1588,8 @@
 
     function scaleDescription() {
       return equalScaleCheckbox.checked
-        ? "Gleich (1:1) – eine Einheit ist auf beiden Achsen gleich lang."
-        : "x- und y-Achse unabhängig skaliert.";
+        ? "Identique (1:1) : une unité a la même longueur sur les deux axes."
+        : "Échelles indépendantes pour les axes x et y.";
     }
 
     function xToPx(x) {
@@ -1090,46 +1610,124 @@
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
-      // Im Drucklayout ist das Canvas ausgeblendet; das Druckbild bleibt unverändert.
       if (rect.width <= 0 || rect.height <= 0) return;
       const dpr = window.devicePixelRatio || 1;
-      width = rect.width;
-      height = rect.height;
-      canvas.width = Math.max(1, Math.round(width * dpr));
-      canvas.height = Math.max(1, Math.round(height * dpr));
-      ctx.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
+      canvasFullWidth = rect.width;
+      canvasFullHeight = rect.height;
+      plotLeft = rect.width < 360 ? 64 : 78;
+      width = Math.max(50, rect.width - plotLeft);
+      height = Math.max(100, rect.height - plotBottom);
+      canvas.width = Math.max(1, Math.round(rect.width * dpr));
+      canvas.height = Math.max(1, Math.round(rect.height * dpr));
+      ctx.setTransform(canvas.width / rect.width, 0, 0, canvas.height / rect.height, 0, 0);
       drawCanvas();
     }
 
     function drawCanvas() {
-      ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, width, height);
-
+      ctx.clearRect(0, 0, canvasFullWidth, canvasFullHeight);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvasFullWidth, canvasFullHeight);
       if (!state) return;
       view = getViewBounds();
-
-      state.specialPoints = findSpecialPoints(
-        state.evaluator,
-        state.denominators || [],
-        view.xMin,
-        view.xMax,
-        view.yMin,
-        view.yMax
-      );
-
+      state.specialPoints = collectStudySpecialPoints();
+      state.visibleRoots = studyRootsInView();
+      state.originInfo = originInformation();
+      annotationBoxes = axisLabelLayout().labels.map(x => ({ ...x }));
+      ctx.save();
+      ctx.translate(plotLeft, 0);
+      ctx.beginPath(); ctx.rect(0, 0, width, height); ctx.clip();
       drawGrid();
       drawFunctionLine();
       drawSpecialPoints();
+      drawStudyPoints();
+      drawAxisLabels();
+      ctx.restore();
+      drawProjectionBands();
+      updateStudyInfo();
       updateRangeInfo();
     }
 
-    function drawGrid() {
+    function axisLabelLayout() {
+      const xAxisVisible = view.yMin <= 0 && view.yMax >= 0;
+      const yAxisVisible = view.xMin <= 0 && view.xMax >= 0;
+      const axisY = xAxisVisible ? yToPx(0) : height;
+      const axisX = yAxisVisible ? xToPx(0) : 0;
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+      const small = width < 400;
+      const boxWidth = Math.min(width - 10, small ? 104 : 124), boxHeight = 25;
+      const xLabel = { text: 'Abscisse = x', x: width - boxWidth - 5,
+        y: clamp(axisY >= 40 ? axisY - boxHeight - 8 : axisY + 8, 5, height - boxHeight - 5), width: boxWidth, height: boxHeight };
+      const yLabel = { text: 'Ordonnée = y', x: clamp(axisX > boxWidth + 15 ? axisX - boxWidth - 9 : axisX + 9, 5, width - boxWidth - 5),
+        y: 5, width: boxWidth, height: boxHeight };
+      if (rectanglesOverlap(xLabel, yLabel, 5)) yLabel.y = xLabel.y + xLabel.height + 8;
+      return { xAxisVisible, yAxisVisible, axisX, axisY, labels: [xLabel, yLabel] };
+    }
+
+    function rectanglesOverlap(a, b, gap = 0) {
+      return a.x < b.x + b.width + gap && a.x + a.width + gap > b.x &&
+             a.y < b.y + b.height + gap && a.y + a.height + gap > b.y;
+    }
+
+    function drawAxisLabels() {
+      if (!view) return;
+      const layout = axisLabelLayout();
+      ctx.save();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#667085";
+
+
+      if (layout.xAxisVisible) {
+        ctx.beginPath();
+        ctx.moveTo(width - 3, layout.axisY);
+        ctx.lineTo(width - 13, layout.axisY - 5);
+        ctx.lineTo(width - 13, layout.axisY + 5);
+        ctx.closePath();
+        ctx.fill();
+      }
+      if (layout.yAxisVisible) {
+        ctx.beginPath();
+        ctx.moveTo(layout.axisX, 3);
+        ctx.lineTo(layout.axisX - 5, 13);
+        ctx.lineTo(layout.axisX + 5, 13);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.font = (width < 400 ? "700 11px" : "700 13px") + " system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "#ffffff";
+      ctx.fillStyle = "#344054";
+      for (const label of layout.labels) {
+        const x = label.x + label.width / 2;
+        const y = label.y + label.height / 2;
+
+        ctx.strokeText(label.text, x, y);
+        ctx.fillText(label.text, x, y);
+      }
+      ctx.restore();
+    }
+
+    function getGridSteps() {
       const xRange = view.xMax - view.xMin;
       const yRange = view.yMax - view.yMin;
       const xStep = niceStep(xRange, width / 95);
-      // Im 1:1-Modus dieselbe Schrittweite: Das Raster besteht aus Quadraten.
+
       const yStep = equalScaleCheckbox.checked ? xStep : niceStep(yRange, height / 72);
+      return { xStep, yStep };
+    }
+
+    function drawGrid() {
+      const { xStep, yStep } = getGridSteps();
+      const axisLabels = axisLabelLayout().labels;
+
+      const drawTickLabel = (text, x, y) => {
+        const bounds = { x, y, width: ctx.measureText(text).width, height: 16 };
+        if (!axisLabels.some(label => rectanglesOverlap(bounds, label, 2))) {
+          ctx.fillText(text, x, y);
+        }
+      };
 
       ctx.save();
       ctx.lineWidth = 1;
@@ -1147,7 +1745,7 @@
 
         ctx.fillStyle = "#667085";
         const labelY = view.yMin <= 0 && view.yMax >= 0 ? Math.min(height - 18, Math.max(4, yToPx(0) + 4)) : height - 18;
-        if (px > 4 && px < width - 25) ctx.fillText(formatNumber(x), px + 4, labelY);
+        if (px > 4 && px < width - 25) drawTickLabel(formatNumber(x), px + 4, labelY);
       }
 
       const firstY = Math.ceil(view.yMin / yStep) * yStep;
@@ -1161,7 +1759,7 @@
 
         ctx.fillStyle = "#667085";
         const labelX = view.xMin <= 0 && view.xMax >= 0 ? Math.min(width - 70, Math.max(6, xToPx(0) + 6)) : 6;
-        if (py > 4 && py < height - 16) ctx.fillText(formatNumber(y), labelX, py + 4);
+        if (py > 4 && py < height - 16 && !(Math.abs(y) < yStep * 1e-7 && view.xMin <= 0 && view.xMax >= 0)) drawTickLabel(formatNumber(y), labelX, py + 4);
       }
 
       ctx.restore();
@@ -1169,111 +1767,52 @@
 
     function drawFunctionLine() {
       const sampleCount = Math.max(900, Math.floor(width * 2.4));
-      const xRange = view.xMax - view.xMin;
-      const yRange = view.yMax - view.yMin;
-
-      ctx.save();
-      ctx.strokeStyle = "#2563eb";
-      ctx.lineWidth = 2.5;
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-      ctx.beginPath();
-
-      let drawing = false;
-      let lastY = null;
-      let lastPy = null;
-
-      for (let i = 0; i <= sampleCount; i++) {
-        const x = view.xMin + (i / sampleCount) * xRange;
-        let y;
-        try {
-          y = state.evaluator(x);
-        } catch {
-          y = NaN;
-        }
-
-        const valid = Number.isFinite(y) && Math.abs(y) < 1e12;
-        if (!valid) {
-          drawing = false;
-          lastY = null;
-          lastPy = null;
-          continue;
-        }
-
-        const px = xToPx(x);
+      const range = view.xMax - view.xMin;
+      const xs = Array.from({ length: sampleCount + 1 }, (_, i) => view.xMin + range * i / sampleCount);
+      for (const i of state.analysis.domain.set) for (const x of [i.lo, i.hi]) if (x >= view.xMin && x <= view.xMax) xs.push(x);
+      for (const p of state.specialPoints) xs.push(p.x);
+      for (const x of state.visibleRoots) xs.push(x);
+      xs.sort((a, b) => a - b);
+      ctx.save(); ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.beginPath();
+      let drawing = false, lastPy = null;
+      for (const x of xs) {
+        const isMissing = state.specialPoints.some(p => x === p.x);
+        const y = isMissing ? NaN : evaluateFinite(state.evaluator, x, 1e12);
         const py = yToPx(y);
-        const nearCanvas = py > -height * 3 && py < height * 4;
-
-        if (!nearCanvas) {
-          drawing = false;
-          lastY = y;
-          lastPy = py;
-          continue;
-        }
-
-        const bigJump = lastPy !== null && Math.abs(py - lastPy) > height * 1.45 && Math.abs(y - lastY) > yRange * 0.65;
-
-        if (!drawing || bigJump) {
-          ctx.moveTo(px, py);
-          drawing = true;
-        } else {
-          ctx.lineTo(px, py);
-        }
-
-        lastY = y;
-        lastPy = py;
+        if (!Number.isFinite(y) || py < -height * 3 || py > height * 4) { drawing = false; lastPy = null; continue; }
+        const px = xToPx(x);
+        if (!drawing || (lastPy !== null && Math.abs(py - lastPy) > height * 1.45)) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+        drawing = true; lastPy = py;
       }
-
       ctx.stroke();
+
+      for (const i of state.analysis.domain.set) for (const x of [i.lo, i.hi]) {
+        if (x < view.xMin || x > view.xMax || !domainAllows(state.analysis.domain, x)) continue;
+        const y = evaluateFinite(state.evaluator, x);
+        if (!Number.isFinite(y)) continue;
+        ctx.fillStyle = '#2563eb'; ctx.beginPath(); ctx.arc(xToPx(x), yToPx(y), 3.5, 0, Math.PI * 2); ctx.fill();
+      }
       ctx.restore();
     }
 
     function drawSpecialPoints() {
-      if (!state || !state.specialPoints || state.specialPoints.length === 0) return;
-
       ctx.save();
-      ctx.font = "12px system-ui, sans-serif";
-      ctx.textBaseline = "top";
-
-      for (const point of state.specialPoints) {
-        if (point.type !== "asymptote") continue;
+      for (const point of state.specialPoints || []) {
         const px = xToPx(point.x);
-        if (px < -4 || px > width + 4) continue;
-
-        ctx.strokeStyle = "#b42318";
-        ctx.lineWidth = 1.8;
-        ctx.setLineDash([7, 6]);
-        ctx.beginPath();
-        ctx.moveTo(px, 0);
-        ctx.lineTo(px, height);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.fillStyle = "#b42318";
-        const labelX = Math.min(width - 118, Math.max(6, px + 8));
-        ctx.fillText(`Polstelle x = ${formatNumber(point.x)}`, labelX, 8);
+        if (px < 0 || px > width) continue;
+        if (point.type === 'asymptote') {
+          ctx.strokeStyle = '#b42318'; ctx.lineWidth = 1.4; ctx.setLineDash([6, 6]);
+          ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, height); ctx.stroke(); ctx.setLineDash([]);
+          annotation(['Asymptote verticale', 'x = ' + mathNumber(point.x).text], px, 18, '#b42318', false);
+        } else {
+          const py = yToPx(point.y);
+          if (py < 0 || py > height) continue;
+          ctx.beginPath(); ctx.arc(px, py, 6.5, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
+          ctx.strokeStyle = '#b42318'; ctx.lineWidth = 2.3; ctx.stroke();
+          annotation(['Trou · x = ' + mathNumber(point.x).text, 'Point exclu de la courbe'], px, py, '#b42318');
+        }
       }
-
-      for (const point of state.specialPoints) {
-        if (point.type !== "hole") continue;
-        const px = xToPx(point.x);
-        const py = yToPx(point.y);
-        if (px < -10 || px > width + 10 || py < -10 || py > height + 10) continue;
-
-        ctx.fillStyle = "#ffffff";
-        ctx.strokeStyle = "#b42318";
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(px, py, 6.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = "#b42318";
-        const labelX = Math.min(width - 104, Math.max(6, px + 10));
-        const labelY = Math.min(height - 18, Math.max(6, py - 22));
-        ctx.fillText(`Lücke x = ${formatNumber(point.x)}`, labelX, labelY);
-      }
-
       ctx.restore();
     }
 
@@ -1282,46 +1821,31 @@
         rangeInfo.textContent = "";
         return;
       }
-      rangeInfo.innerHTML = `<strong>Sichtbarer Bereich:</strong> x = ${formatNumber(view.xMin)} … ${formatNumber(view.xMax)}, y = ${formatNumber(view.yMin)} … ${formatNumber(view.yMax)}<br><strong>Maßstab:</strong> ${equalScaleCheckbox.checked ? "gleich (1:1)" : "unabhängig"}`;
+      rangeInfo.innerHTML = `<strong>Vue affichée :</strong> x = ${formatNumber(view.xMin)} … ${formatNumber(view.xMax)}, y = ${formatNumber(view.yMin)} … ${formatNumber(view.yMax)}<br><strong>Échelle :</strong> ${equalScaleCheckbox.checked ? "identique (1:1)" : "libre sur chaque axe"}`;
     }
 
     function drawFunction(forceAutoScale = false) {
       try {
         const compiled = compileExpression(functionInput.value);
-        const evaluator = compiled.evaluator;
-        const xMin = parseGermanNumber(xMinInput.value);
-        const xMax = parseGermanNumber(xMaxInput.value);
-
-        if (xMin >= xMax) throw new Error("Der Wert bei „x von“ muss kleiner sein als „x bis“.");
-
-        const sampleCount = Math.max(1200, Math.floor(width * 2));
-        const sample = sampleFunction(evaluator, xMin, xMax, sampleCount);
-        let yMin = state ? state.yMin : -5;
-        let yMax = state ? state.yMax : 5;
-
-        if (autoYCheckbox.checked || forceAutoScale || !state) {
-          const yRange = autoYRange(sample.finiteY);
-          yMin = yRange.yMin;
-          yMax = yRange.yMax;
-        }
-
-        state = {
-          evaluator,
-          denominators: compiled.denominators || [],
-          expression: functionInput.value,
-          xMin,
-          xMax,
-          yMin,
-          yMax,
-          specialPoints: []
-        };
-
+        const analysis = analyzeFunction(compiled.ast);
+        const evaluator = x => analysis.domain.known && !domainAllows(analysis.domain, x) ? NaN : compiled.evaluator(x);
+        const xMin = parseInputNumber(xMinInput.value), xMax = parseInputNumber(xMaxInput.value);
+        if (xMin >= xMax) throw new Error('La borne « x minimum » doit être inférieure à la borne « x maximum ».');
+        if (!Number.isFinite(xMax - xMin) || xMax - xMin < Math.max(1e-12, Number.EPSILON * Math.max(Math.abs(xMin), Math.abs(xMax)) * 128)) throw new Error('Choisissez un intervalle de x fini et suffisamment large.');
+        const sample = sampleForScaling(evaluator, analysis, xMin, xMax);
+        let yMin = state ? state.yMin : -5, yMax = state ? state.yMax : 5;
+        if (autoYCheckbox.checked || forceAutoScale || !state) ({ yMin, yMax } = safeAutoY(sample.finiteY));
+        state = { evaluator, analysis, denominators: compiled.denominators || [], expression: functionInput.value,
+          xMin, xMax, yMin, yMax, specialPoints: [], visibleRoots: [], originInfo: null, rootCache: null };
         drawCanvas();
         const note = specialPointMessage(state.specialPoints);
-        showMessage(note ? `Graph gezeichnet. ${note}.` : "Graph gezeichnet.", "ok");
+        const text = !analysis.domain.set.length ? 'Aucune valeur réelle : Dom(f) = ∅.' : !sample.finiteY.length ?
+          'Aucun point calculable dans cet intervalle de x. Dom(f) et Im(f) restent indiqués à côté du graphique.' :
+          note ? 'Courbe tracée. ' + note + '.' : 'Graphique et repères mis à jour.';
+        showMessage(text, 'ok');
         return true;
       } catch (error) {
-        showMessage(error.message || "Die Funktion konnte nicht gezeichnet werden.", "error");
+        showMessage(error.message || 'La fonction n’a pas pu être tracée.', 'error');
         return false;
       }
     }
@@ -1340,23 +1864,15 @@
     }
 
     function autoScaleCurrentView() {
-      if (!state) {
-        drawFunction(true);
-        return;
-      }
-
+      if (!state) { drawFunction(true); return; }
       try {
-        const sampleCount = Math.max(1200, Math.floor(width * 2));
-        const sample = sampleFunction(state.evaluator, state.xMin, state.xMax, sampleCount);
-        const yRange = autoYRange(sample.finiteY);
-        state.yMin = yRange.yMin;
-        state.yMax = yRange.yMax;
+        const sample = sampleForScaling(state.evaluator, state.analysis, state.xMin, state.xMax);
+        const yRange = safeAutoY(sample.finiteY);
+        state.yMin = yRange.yMin; state.yMax = yRange.yMax;
         drawCanvas();
         const note = specialPointMessage(state.specialPoints);
-        showMessage(note ? `y-Achse automatisch angepasst. ${note}.` : "y-Achse automatisch angepasst.", "ok");
-      } catch (error) {
-        showMessage(error.message || "Auto-Scale war nicht möglich.", "error");
-      }
+        showMessage('Axe y ajusté automatiquement.' + (note ? ' ' + note + '.' : ''), 'ok');
+      } catch (error) { showMessage(error.message || 'L’ajustement automatique n’a pas été possible.', 'error'); }
     }
 
     function updatePrintInfo() {
@@ -1364,7 +1880,7 @@
         printFunction.textContent = `f(x) = ${functionInput.value}`;
         printRange.textContent = "";
         printScale.textContent = scaleDescription();
-        printMessage.textContent = "Der Graph konnte noch nicht gezeichnet werden.";
+        printMessage.textContent = "Le graphique n’a pas encore pu être tracé.";
         return;
       }
 
@@ -1372,21 +1888,24 @@
       printFunction.textContent = `f(x) = ${state.expression}`;
       printRange.textContent = `x = ${formatNumber(view.xMin)} … ${formatNumber(view.xMax)}, y = ${formatNumber(view.yMin)} … ${formatNumber(view.yMax)}`;
       printScale.textContent = scaleDescription();
-      printMessage.textContent = note || "Keine Lücke oder Polstelle im sichtbaren Bereich erkannt.";
+      printMessage.textContent = note || "Aucun trou ni aucune asymptote verticale détectés dans la vue affichée.";
     }
 
     function preparePrint() {
       updatePrintInfo();
       if (!state) return;
-      // Momentaufnahme statt gestrecktem Canvas: Ansicht und Maßstab bleiben erhalten.
+
+
+      const printWidthMm = Math.min(157, 145 * canvasFullWidth / canvasFullHeight);
+      document.querySelector('.math-frame').style.setProperty('--print-plot-width', printWidthMm + 'mm');
       printGraphImage.src = canvas.toDataURL("image/png");
-      printGraphImage.alt = `Graph von f(x) = ${state.expression}`;
+      printGraphImage.alt = `Graphique de f(x) = ${state.expression} avec l’abscisse x, l’ordonnée y, Dom(f), Im(f) et les points remarquables`;
     }
 
     function inputsMatchCurrentGraph() {
       if (!state || functionInput.value !== state.expression) return false;
       const matches = (input, value) =>
-        input.value.trim() === formatNumber(value) || parseGermanNumber(input.value) === value;
+        input.value.trim() === formatNumber(value) || parseInputNumber(input.value) === value;
       try {
         return matches(xMinInput, state.xMin) && matches(xMaxInput, state.xMax);
       } catch {
@@ -1395,7 +1914,7 @@
     }
 
     function printGraph() {
-      // Unveränderte Eingaben: den aktuellen Ausschnitt drucken, ohne neu zu skalieren.
+
       if (!inputsMatchCurrentGraph() && !drawFunction(false)) return;
       if (!state) return;
       preparePrint();
@@ -1404,7 +1923,7 @@
 
     function createExampleButtons() {
       const label = document.createElement("span");
-      label.textContent = "Beispiele:";
+      label.textContent = "Exemples :";
       examples.appendChild(label);
 
       EXAMPLE_FUNCTIONS.forEach(example => {
@@ -1421,22 +1940,418 @@
       });
     }
 
+    const STUDY_COLORS = { domain: '#047857', image: '#7c3aed', root: '#047857', origin: '#b45309', excluded: '#b42318' };
+    let canvasFullWidth = 0, canvasFullHeight = 0;
+    let plotLeft = 78;
+    const plotBottom = 60;
+    let annotationBoxes = [];
+
+    function mathEquality(name, formatted) {
+      return name + (formatted.approx ? ' ≈ ' : ' = ') + formatted.text;
+    }
+    function summarizePoints(values, max = 10) {
+      return values.slice(0, max).map(v => mathNumber(v).text).join(' ; ') + (values.length > max ? ' ; …' : '');
+    }
+    function numericalRoots(evaluator, analysis, xMin, xMax) {
+      const count = Math.min(3200, Math.max(1100, Math.round(width * 2)));
+      const step = (xMax - xMin) / count;
+      const samples = [];
+      for (let i = 0; i <= count; i++) {
+        const x = xMin + i * step;
+        samples.push({ x, y: evaluateFinite(evaluator, x) });
+      }
+      const found = [];
+      function accept(x) {
+        if (!Number.isFinite(x) || !domainAllows(analysis.domain, x, true)) return;
+        if ((state.specialPoints || []).some(p => closeNumber(p.x, x, 1e-8))) return;
+        const y = evaluateFinite(evaluator, x);
+        const h = Math.max(1e-7 * Math.max(1, Math.abs(x)), step * 0.08);
+        const l = evaluateFinite(evaluator, x - h), r = evaluateFinite(evaluator, x + h);
+        const scale = Math.max(Math.abs(l), Math.abs(r));
+        if (y === 0 || (Number.isFinite(y) && Number.isFinite(scale) && scale > 0 && Math.abs(y) < scale * 2e-7)) found.push(x);
+      }
+      function bisect(a, b) {
+        let fa = evaluateFinite(evaluator, a);
+        for (let k = 0; k < 75; k++) {
+          const m = a + (b - a) / 2, fm = evaluateFinite(evaluator, m);
+          if (!Number.isFinite(fm)) return NaN;
+          if (m === a || m === b || fm === 0) return m;
+          if (Math.sign(fa) === Math.sign(fm)) { a = m; fa = fm; } else b = m;
+        }
+        return a + (b - a) / 2;
+      }
+      for (let i = 0; i < samples.length; i++) {
+        const current = samples[i];
+        if (current.y === 0) accept(current.x);
+        if (i > 0) {
+          const prev = samples[i - 1];
+          if (Number.isFinite(prev.y) && Number.isFinite(current.y) && Math.sign(prev.y) !== Math.sign(current.y) && prev.y !== 0 && current.y !== 0) accept(bisect(prev.x, current.x));
+        }
+
+        if (i > 0 && i + 1 < samples.length && Number.isFinite(current.y) &&
+            Math.abs(current.y) < Math.abs(samples[i - 1].y) && Math.abs(current.y) < Math.abs(samples[i + 1].y)) {
+          let a = samples[i - 1].x, b = samples[i + 1].x;
+          const ratio = (Math.sqrt(5) - 1) / 2;
+          let c = b - ratio * (b - a), d = a + ratio * (b - a);
+          let fc = Math.abs(evaluateFinite(evaluator, c)), fd = Math.abs(evaluateFinite(evaluator, d));
+          for (let k = 0; k < 65; k++) {
+            if (fc < fd) { b = d; d = c; fd = fc; c = b - ratio * (b - a); fc = Math.abs(evaluateFinite(evaluator, c)); }
+            else { a = c; c = d; fc = fd; d = a + ratio * (b - a); fd = Math.abs(evaluateFinite(evaluator, d)); }
+          }
+          accept((a + b) / 2);
+        }
+      }
+      for (const part of analysis.domain.set || []) for (const x of [part.lo, part.hi]) {
+        if (x >= xMin && x <= xMax && evaluateFinite(evaluator, x) === 0) accept(x);
+      }
+      if (xMin <= 0 && xMax >= 0 && evaluateFinite(evaluator, 0) === 0) accept(0);
+      return uniqueNumbers(found).filter(x => x >= xMin && x <= xMax);
+    }
+    function studyRootsInView() {
+      const analysis = state.analysis, roots = analysis.roots;
+      const inView = x => x >= view.xMin && x <= view.xMax && domainAllows(analysis.domain, x, true);
+      if (roots.periodic) return periodicPoints(roots.periodic, view.xMin, view.xMax, 180).filter(inView);
+      if (roots.global && roots.set !== null) return roots.set.filter(i => i.lo === i.hi).map(i => i.lo).filter(inView);
+      const key = view.xMin.toPrecision(13) + ':' + view.xMax.toPrecision(13);
+      if (state.rootCache && state.rootCache.key === key) return state.rootCache.values;
+      const values = numericalRoots(state.evaluator, analysis, view.xMin, view.xMax);
+      state.rootCache = { key, values };
+      return values;
+    }
+    function originInformation() {
+      const a = state.analysis;
+      if (!domainAllows(a.domain, 0, true)) return { defined: false, reason: '0 ∉ Dom(f) : la fonction n’est pas définie en x = 0.' };
+      let y = evaluateFinite(state.evaluator, 0);
+      if (!Number.isFinite(y)) return { defined: false, unavailable: a.domain.known, reason: a.domain.known ? 'f(0) ne peut pas être évalué numériquement.' : 'Aucune valeur réelle obtenue pour x = 0.' };
+      if ((a.roots.global && a.roots.set && setContains(a.roots.set, 0, true)) || (a.roots.periodic && periodicHas(a.roots.periodic, 0))) y = 0;
+      return { defined: true, y };
+    }
+    function updateStudyInfo() {
+      const a = state.analysis;
+      document.getElementById('displayFunction').textContent = 'f(x) = ' + state.expression;
+      document.getElementById('domainFormula').textContent = mathEquality('Dom(f)', a.domainText);
+      document.getElementById('imageNotation').textContent = a.image === null ? 'Im(f)' : 'Im(f)' + (a.imageText.approx ? ' ≈' : ' =');
+      document.getElementById('imageSet').textContent = a.imageText.text;
+      document.getElementById('imageSet').classList.toggle('unknown', a.image === null);
+      document.getElementById('imageNote').textContent = a.image === null
+        ? 'L’ensemble image global n’est pas déterminé intégralement pour cette expression. Il n’est pas déduit de la seule vue affichée.'
+        : a.image.length === 0 ? 'Aucune valeur réelle.' : 'Toutes les valeurs de y effectivement atteintes, y compris hors de la vue affichée.';
+      document.getElementById('domainNote').textContent = a.domain.known
+        ? 'Toutes les valeurs de x autorisées. Les valeurs exclues le restent après simplification.'
+        : 'Les conditions de définition sont indiquées sous forme d’ensemble. La décomposition complète en intervalles n’est pas déterminée.';
+      document.getElementById('domainQuality').textContent = a.domain.known ? 'GLOBAL' : 'CONDITIONS';
+      document.getElementById('imageQuality').textContent = a.image === null ? 'ANALYSE LIMITÉE' : 'GLOBAL';
+      const roots = a.roots;
+      const rootText = document.getElementById('rootsFormula'), rootNote = document.getElementById('rootsNote');
+      if (roots.periodic) {
+        rootText.textContent = 'x = ' + patternText(roots.periodic).replace(' | ', ', ');
+        rootNote.textContent = 'Les racines sont les valeurs de x telles que f(x) = 0. Les points visibles (x ; 0) sont marqués sur la courbe.';
+      } else if (roots.global && roots.set !== null) {
+        if (!roots.set.length) {
+          rootText.textContent = 'Aucune racine (∅).';
+          rootNote.textContent = 'Aucun x autorisé ne vérifie f(x) = 0. Un trou sur l’axe x n’est pas une racine.';
+        } else if (roots.set.some(i => i.lo !== i.hi)) {
+          rootText.textContent = 'x ∈ ' + formattedSet(roots.set).text;
+          rootNote.textContent = 'Pour tout x de cet ensemble, f(x) = 0. Ces valeurs ne sont pas étiquetées individuellement.';
+        } else {
+          const valid = roots.set.map(i => i.lo).filter(x => domainAllows(a.domain, x, true));
+          const approx = valid.some(x => mathNumber(x).approx);
+          rootText.textContent = valid.length ? 'x ' + (approx ? '≈ ' : '= ') + summarizePoints(valid) : 'Aucune racine (∅).';
+          rootNote.textContent = 'Les racines sont des valeurs de x. Les points correspondants, notés R₁, R₂, …, ont pour coordonnées (x ; 0).';
+        }
+      } else {
+        rootText.textContent = state.visibleRoots.length ? 'Dans la vue : x ≈ ' + summarizePoints(state.visibleRoots) : 'Aucune racine trouvée dans la vue affichée.';
+        rootNote.textContent = 'Recherche numérique limitée à la vue affichée. D’autres racines peuvent se trouver hors du cadre ou ne pas avoir été détectées.';
+      }
+      const origin = state.originInfo;
+      document.getElementById('originFormula').textContent = origin.defined ?
+        'f(0)' + (mathNumber(origin.y).approx ? ' ≈ ' : ' = ') + mathNumber(origin.y).text + '   →   A (0 ; ' + mathNumber(origin.y).text + ')' : origin.unavailable ? 'Non évaluable numériquement.' : 'Non définie.';
+      document.getElementById('originNote').textContent = origin.defined ?
+        (origin.y === 0 ? 'A est sur l’axe y et correspond aussi à une racine : A = (0 ; 0).' : 'L’ordonnée à l’origine est la valeur f(0). A marque le point d’intersection avec l’axe y.') : origin.reason;
+      const anyApprox = a.domainText.approx || a.imageText.approx || (roots.set || []).some(i => mathNumber(i.lo).approx) || (origin.defined && mathNumber(origin.y).approx);
+      document.getElementById('approxNote').textContent = anyApprox ? '≈ indique une valeur arrondie. ' : '';
+      canvas.setAttribute('aria-label', 'Graphique de f(x) = ' + state.expression + '. ' + mathEquality('Dom(f)', a.domainText) + '. ' + mathEquality('Im(f)', a.imageText) + '. ' + rootText.textContent);
+    }
+
+    function collectStudySpecialPoints() {
+      const a = state.analysis, r = asRational(a.ast);
+      if (r && a.domain.known) {
+        const candidates = uniqueNumbers(a.domain.set.flatMap(i => [i.lo, i.hi]));
+        const points = [];
+        for (const x of candidates) {
+          if (x < view.xMin || x > view.xMax || domainAllows(a.domain, x, true)) continue;
+          const left = rationalLimit(r, x, -1), right = rationalLimit(r, x, 1);
+          if (!Number.isFinite(left) || !Number.isFinite(right)) points.push({ type: 'asymptote', x });
+          else if (closeNumber(left, right, 1e-7)) points.push({ type: 'hole', x, y: (left + right) / 2 });
+        }
+        return points;
+      }
+      const result = findSpecialPoints(state.evaluator, state.denominators || [], view.xMin, view.xMax, view.yMin, view.yMax);
+
+      const boundaries = uniqueNumbers(a.domain.set.flatMap(i => [i.lo, i.hi]));
+      for (const x of boundaries) {
+        if (x < view.xMin || x > view.xMax || domainAllows(a.domain, x, true) || result.some(p => closeNumber(p.x, x))) continue;
+        const classified = classifySpecialPoint({ x, source: 'denominator' }, state.evaluator, view.xMin, view.xMax, view.yMin, view.yMax);
+        if (classified) result.push(classified);
+      }
+      return result;
+    }
+
+    function roundedRect(x, y, w, h, r = 6) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+    }
+    function annotation(lines, px, py, color, preferAbove = true) {
+      ctx.save();
+      const fontSize = width < 420 ? 10.5 : 12;
+      ctx.font = '600 ' + fontSize + 'px system-ui, sans-serif';
+      const pad = 7, lineHeight = fontSize + 4;
+      const w = Math.min(width - 12, Math.max(...lines.map(t => ctx.measureText(t).width)) + 2 * pad);
+      const h = lines.length * lineHeight + pad * 2 - 3;
+      const top = py - h - 14, bottom = py + 18;
+      const ys = preferAbove ? [top, bottom] : [bottom, top];
+      const candidates = [];
+      for (const y of ys) for (const x of [px + 14, px - w - 14, px - w / 2]) candidates.push({ x, y, width: w, height: h });
+      for (const y of [top - 45, bottom + 40]) for (const x of [px + 24, px - w - 24]) candidates.push({ x, y, width: w, height: h });
+      let chosen = null, bestScore = Infinity;
+      for (const candidate of candidates) {
+        const rect = { ...candidate, x: Math.max(5, Math.min(width - w - 5, candidate.x)), y: Math.max(5, Math.min(height - h - 5, candidate.y)) };
+        const score = annotationBoxes.reduce((s, b) => s + (rectanglesOverlap(rect, b, 5) ? 100000 : 0), 0) + Math.abs(rect.x - candidate.x) + Math.abs(rect.y - candidate.y);
+        if (score < bestScore) { chosen = rect; bestScore = score; }
+      }
+      if (!chosen) { ctx.restore(); return; }
+      annotationBoxes.push(chosen);
+      ctx.strokeStyle = color; ctx.lineWidth = 0.8; ctx.globalAlpha = 0.7;
+      ctx.beginPath(); ctx.moveTo(px, py);
+      ctx.lineTo(Math.max(chosen.x, Math.min(chosen.x + w, px)), Math.max(chosen.y, Math.min(chosen.y + h, py))); ctx.stroke();
+      ctx.globalAlpha = 1;
+      roundedRect(chosen.x, chosen.y, w, h);
+      ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fill();
+      ctx.strokeStyle = color; ctx.lineWidth = 0.75; ctx.stroke();
+      ctx.fillStyle = color; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      lines.forEach((text, i) => ctx.fillText(text, chosen.x + pad, chosen.y + pad + i * lineHeight, w - pad * 2));
+      ctx.restore();
+    }
+    function pointMarker(x, y, color, diamond = false) {
+      ctx.save(); ctx.beginPath();
+      if (diamond) {
+        ctx.moveTo(x, y - 6); ctx.lineTo(x + 6, y); ctx.lineTo(x, y + 6); ctx.lineTo(x - 6, y); ctx.closePath();
+      } else ctx.arc(x, y, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.7; ctx.stroke(); ctx.restore();
+    }
+    function drawStudyPoints() {
+      if (!document.getElementById('studyCheckbox').checked) return;
+      const origin = state.originInfo;
+      const roots = state.visibleRoots;
+      const allOrigin = origin.defined && origin.y === 0 && (roots.some(x => closeNumber(x, 0)) ||
+        (state.analysis.roots.set && setContains(state.analysis.roots.set, 0)));
+      const rootY = yToPx(0);
+      let visibleIndex = 0;
+      for (const x of roots) {
+        if (allOrigin && closeNumber(x, 0)) continue;
+        const px = xToPx(x);
+        if (px < 0 || px > width || rootY < 0 || rootY > height) continue;
+        visibleIndex++;
+        pointMarker(px, rootY, STUDY_COLORS.root);
+
+        if (roots.length > 12 && visibleIndex % Math.ceil(roots.length / 10) !== 1) continue;
+        const label = 'R' + String(visibleIndex).replace(/\d/g, d => '₀₁₂₃₄₅₆₇₈₉'[Number(d)]);
+        const lines = roots.length <= 5 && width > 400 ? [label + ' · Racine', '(' + (mathNumber(x).approx ? '≈' : '') + mathNumber(x).text + ' ; 0)'] : [label + ' (' + (mathNumber(x).approx ? '≈' : '') + mathNumber(x).text + ' ; 0)'];
+        annotation(lines, px, rootY, STUDY_COLORS.root, visibleIndex % 2 === 1);
+      }
+      if (origin.defined) {
+        const px = xToPx(0), py = yToPx(origin.y);
+        if (px >= 0 && px <= width && py >= 0 && py <= height) {
+          pointMarker(px, py, STUDY_COLORS.origin, true);
+          if (allOrigin) {
+            ctx.save(); ctx.strokeStyle = STUDY_COLORS.root; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py, 8, 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
+          }
+          annotation(allOrigin ? ['A (0 ; 0)', 'Racine + ordonnée à l’origine'] : ['A (0 ; ' + mathNumber(origin.y).text + ')', 'Ordonnée à l’origine'], px, py, STUDY_COLORS.origin, origin.y >= 0);
+        }
+      }
+    }
+
+    // Les bandes utilisent les mêmes valeurs et les mêmes positions que les axes.
+    // Les symboles d’infini décrivent un prolongement, jamais une graduation finie.
+    function projectionGeometry(vertical) {
+      const lo = vertical ? view.yMin : view.xMin;
+      const hi = vertical ? view.yMax : view.xMax;
+      const fixed = vertical ? 21 : height + 25;
+      const map = v => vertical ? yToPx(v) : plotLeft + xToPx(v);
+      const point = v => vertical ? { x: fixed, y: map(v) } : { x: map(v), y: fixed };
+      return { lo, hi, fixed, map, point };
+    }
+
+    function drawProjectionScale(vertical, step, reservedLabels = []) {
+      if (!Number.isFinite(step) || step <= 0) return;
+      const { lo, hi, fixed, map } = projectionGeometry(vertical);
+      const first = Math.ceil(lo / step), last = Math.floor(hi / step);
+      if (!Number.isFinite(first) || !Number.isFinite(last) || last - first > 2000) return;
+      const accepted = [];
+      ctx.save();
+      ctx.strokeStyle = '#98a2b3'; ctx.fillStyle = '#667085'; ctx.lineWidth = 1;
+      ctx.font = '11px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      for (let k = first; k <= last; k++) {
+        const value = k * step, pos = map(value);
+        if (vertical ? (pos < 6 || pos > height - 6) : (pos < plotLeft + 6 || pos > canvasFullWidth - 6)) continue;
+        ctx.beginPath();
+        if (vertical) { ctx.moveTo(fixed - 6, pos); ctx.lineTo(fixed + 6, pos); }
+        else { ctx.moveTo(pos, fixed - 6); ctx.lineTo(pos, fixed + 6); }
+        ctx.stroke();
+        const text = formatNumber(value);
+        const maxWidth = vertical ? plotLeft - fixed - 14 : Math.max(30, width - 8);
+        const textWidth = Math.min(maxWidth, ctx.measureText(text).width);
+        const x = vertical ? fixed + 10 : pos - textWidth / 2;
+        const y = vertical ? pos : fixed + 17;
+        const box = { x: x - 2, y: y - 7, width: textWidth + 4, height: 14 };
+        if (box.x < (vertical ? 0 : plotLeft) || box.x + box.width > (vertical ? plotLeft : canvasFullWidth)) continue;
+        if ([...reservedLabels, ...accepted].some(r => rectanglesOverlap(box, r, 3))) continue;
+        ctx.textAlign = 'left'; ctx.fillText(text, x, y, maxWidth);
+        accepted.push(box);
+      }
+      ctx.restore();
+    }
+
+    function drawProjectionRail(set, vertical, color, step) {
+      const { lo, hi, fixed, point } = projectionGeometry(vertical);
+      const line = (a, b) => {
+        const p = point(a), q = point(b);
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+      };
+      const markers = [], arrows = [], labels = [];
+      if (set !== null) {
+        for (const part of set) {
+          if (part.hi < lo || part.lo > hi) continue;
+          // Une borne finie hors du cadre donne une flèche sans symbole d’infini.
+          if (part.lo < lo) arrows.push({ v: lo, direction: -1, unbounded: part.lo === -Infinity });
+          if (part.hi > hi) arrows.push({ v: hi, direction: 1, unbounded: part.hi === Infinity });
+          for (const mark of [{ v: part.lo, closed: part.lc }, { v: part.hi, closed: part.hc }]) {
+            if (!Number.isFinite(mark.v) || mark.v < lo || mark.v > hi) continue;
+            const existing = markers.find(m => closeNumber(m.v, mark.v));
+            if (existing) existing.closed ||= mark.closed;
+            else markers.push(mark);
+          }
+        }
+      }
+      ctx.save();
+      ctx.beginPath();
+      if (vertical) ctx.rect(0, 0, plotLeft, height);
+      else ctx.rect(plotLeft, height, width, plotBottom);
+      ctx.clip();
+      const addLabel = (text, x, y, align = 'left', infinity = false, labelColor = color) => {
+        const font = (infinity ? '700 14px' : '600 11px') + ' system-ui, sans-serif';
+        ctx.font = font;
+        const maxWidth = vertical ? plotLeft - fixed - 14 : Math.max(30, width - 8);
+        const w = Math.min(maxWidth, ctx.measureText(text).width);
+        let left = align === 'right' ? x - w : align === 'center' ? x - w / 2 : x;
+        left = Math.max(vertical ? fixed + 9 : plotLeft + 3, Math.min((vertical ? plotLeft : canvasFullWidth) - w - 3, left));
+        const label = { text, x: left - 2, y: y - (infinity ? 9 : 7), width: w + 4,
+          height: infinity ? 18 : 14, textX: left, textY: y, font, maxWidth, color: labelColor, infinity };
+        if (!labels.some(r => rectanglesOverlap(label, r, 2))) labels.push(label);
+      };
+      // Réserver une place aux indications −∞ et +∞, près des flèches correspondantes.
+      for (const arrow of arrows) if (arrow.unbounded) {
+        const signText = arrow.direction < 0 ? '−∞' : '+∞';
+        if (vertical) addLabel(signText, fixed + 10, arrow.direction > 0 ? 11 : height - 11, 'left', true);
+        else addLabel(signText, arrow.direction < 0 ? plotLeft + 7 : canvasFullWidth - 7, height + 10,
+          arrow.direction < 0 ? 'left' : 'right', true);
+      }
+      for (const mark of markers.slice(0, 12)) {
+        const p = point(mark.v), f = mathNumber(mark.v);
+        addLabel((f.approx ? '≈' : '') + f.text, vertical ? fixed + 10 : p.x,
+          vertical ? Math.max(8, Math.min(height - 8, p.y)) : fixed + 17, vertical ? 'left' : 'center');
+      }
+      if (set === null || !set.length) {
+        const p = point((lo + hi) / 2);
+        addLabel(set === null ? '?' : '∅', vertical ? fixed + 10 : p.x,
+          vertical ? p.y : fixed + 17, vertical ? 'left' : 'center', false, set === null ? '#667085' : color);
+      }
+      ctx.strokeStyle = '#e1e5ed'; ctx.lineWidth = 3; line(lo, hi);
+      drawProjectionScale(vertical, step, labels);
+      if (set === null) {
+        ctx.strokeStyle = '#98a2b3'; ctx.lineWidth = 2; ctx.setLineDash([3, 5]); line(lo, hi); ctx.setLineDash([]);
+      } else {
+        ctx.strokeStyle = color; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+        for (const part of set) {
+          if (part.hi < lo || part.lo > hi) continue;
+          line(Math.max(lo, part.lo), Math.min(hi, part.hi));
+        }
+        for (const arrow of arrows) {
+          const p = point(arrow.v), sign = arrow.direction;
+          ctx.beginPath();
+          if (vertical) {
+            ctx.moveTo(p.x, p.y + sign); ctx.lineTo(p.x - 4, p.y + sign * 8); ctx.lineTo(p.x + 4, p.y + sign * 8);
+          } else {
+            ctx.moveTo(p.x - sign, p.y); ctx.lineTo(p.x - sign * 8, p.y - 4); ctx.lineTo(p.x - sign * 8, p.y + 4);
+          }
+          ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+        }
+        for (const mark of markers) {
+          const p = point(mark.v);
+          ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+          ctx.fillStyle = mark.closed ? color : '#ffffff'; ctx.fill();
+          ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+        }
+      }
+      for (const label of labels) {
+        ctx.font = label.font; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = label.color;
+        ctx.fillText(label.text, label.textX, label.textY, label.maxWidth);
+      }
+      ctx.restore();
+    }
+    function drawProjectionBands() {
+      ctx.save();
+      ctx.fillStyle = '#faf8ff'; ctx.fillRect(0, 0, plotLeft, height);
+      ctx.fillStyle = '#f0fdf7'; ctx.fillRect(plotLeft, height, width, plotBottom);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, height, plotLeft, plotBottom);
+      ctx.strokeStyle = '#e4e7ec'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(plotLeft - 0.5, 0); ctx.lineTo(plotLeft - 0.5, height); ctx.lineTo(canvasFullWidth, height); ctx.stroke();
+      const { xStep, yStep } = getGridSteps();
+      drawProjectionRail(state.analysis.image, true, STUDY_COLORS.image, yStep);
+      drawProjectionRail(domainViewSet(state.analysis.domain, view.xMin, view.xMax), false, STUDY_COLORS.domain, xStep);
+      ctx.restore();
+    }
+
+    function sampleForScaling(evaluator, analysis, xMin, xMax) {
+      const sample = sampleFunction(evaluator, xMin, xMax, Math.max(1200, Math.floor(width * 2)));
+      const extra = [0, ...analysis.domain.set.flatMap(i => [i.lo, i.hi])];
+      const r = asRational(analysis.ast);
+      if (r) {
+        const derivative = pAdd(pMul(pDeriv(r.p), r.q), pMul(r.p, pDeriv(r.q)), -1);
+        extra.push(...(polynomialRoots(derivative) || []));
+      }
+      for (const x of extra) if (x >= xMin && x <= xMax) {
+        const y = evaluateFinite(evaluator, x, 1e12);
+        if (Number.isFinite(y)) sample.finiteY.push(y);
+      }
+      return sample;
+    }
+    function safeAutoY(finiteY) {
+      if (!finiteY.length) return { yMin: -5, yMax: 5 };
+      return autoYRange(finiteY.length === 1 ? [finiteY[0], finiteY[0]] : finiteY);
+    }
+
     drawButton.addEventListener("click", () => drawFunction(false));
     autoButton.addEventListener("click", () => {
       autoYCheckbox.checked = true;
       drawFunction(true);
     });
     resetButton.addEventListener("click", resetView);
+    document.getElementById('studyCheckbox').addEventListener('change', drawCanvas);
+    autoYCheckbox.addEventListener('change', () => { if (autoYCheckbox.checked) autoScaleCurrentView(); });
     printButton.addEventListener("click", printGraph);
     equalScaleCheckbox.addEventListener("change", () => {
       equalScaleHint.hidden = !equalScaleCheckbox.checked;
       if (!state) return;
-      // Nicht neu einlesen: Umschalten verändert nur die Ansicht des gezeichneten Graphen.
+
       drawCanvas();
       const note = specialPointMessage(state.specialPoints);
       const text = equalScaleCheckbox.checked
-        ? "Gleicher Maßstab (1:1) aktiv."
-        : "x- und y-Achse wieder unabhängig skaliert.";
+        ? "Échelle identique (1:1) activée."
+        : "Les axes x et y retrouvent des échelles indépendantes.";
       showMessage(note ? `${text} ${note}.` : text, "ok");
     });
 
@@ -1457,11 +2372,13 @@
       event.preventDefault();
 
       const rect = canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
+      const mouseX = event.clientX - rect.left - plotLeft;
       const mouseY = event.clientY - rect.top;
       const graphX = pxToX(mouseX);
       const graphY = pxToY(mouseY);
+      if (mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) return;
       const factor = event.deltaY < 0 ? 0.85 : 1.18;
+      if ((state.xMax - state.xMin) * factor < Math.max(1e-10, Number.EPSILON * Math.max(Math.abs(state.xMin), Math.abs(state.xMax)) * 128) || (state.xMax - state.xMin) * factor > 1e12) return;
 
       state.xMin = graphX + (state.xMin - graphX) * factor;
       state.xMax = graphX + (state.xMax - graphX) * factor;
@@ -1475,6 +2392,8 @@
 
     canvas.addEventListener("pointerdown", event => {
       if (!state) return;
+      const rect = canvas.getBoundingClientRect();
+      if (event.clientX - rect.left < plotLeft || event.clientY - rect.top > height) return;
       isDragging = true;
       lastPointer = { x: event.clientX, y: event.clientY };
       canvas.setPointerCapture(event.pointerId);
@@ -1516,7 +2435,26 @@
       autoScaleCurrentView();
     });
 
-    window.addEventListener("resize", resizeCanvas);
+
+    let pendingLayoutResize = 0;
+    function scheduleCanvasResize() {
+      if (pendingLayoutResize) return;
+      pendingLayoutResize = requestAnimationFrame(() => {
+        pendingLayoutResize = 0;
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        if (rect.width > 0 && rect.height > 0 && (
+            Math.abs(rect.width - canvasFullWidth) > .1 ||
+            Math.abs(rect.height - canvasFullHeight) > .1 ||
+            canvas.width !== Math.round(rect.width * dpr) ||
+            canvas.height !== Math.round(rect.height * dpr))) resizeCanvas();
+      });
+    }
+    window.addEventListener("resize", scheduleCanvasResize);
+    if (typeof ResizeObserver !== 'undefined') {
+      const graphResizeObserver = new ResizeObserver(scheduleCanvasResize);
+      graphResizeObserver.observe(canvas.parentElement);
+    }
     window.addEventListener("beforeprint", preparePrint);
     window.addEventListener("afterprint", () => requestAnimationFrame(resizeCanvas));
 
@@ -1524,6 +2462,7 @@
     createExampleButtons();
     resizeCanvas();
     drawFunction(true);
+  
   </script>
 </body>
 </html>
