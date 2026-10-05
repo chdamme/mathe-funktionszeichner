@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Traceur de fonctions — Dom(f) et Im(f)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Traceur de fonctions — ordinateur, tablette et téléphone</title>
   <!-- Application pédagogique autonome, utilisable sans connexion. -->
   <style>
 
@@ -23,6 +23,9 @@
       --radius: 14px;
     }
     * { box-sizing: border-box; }
+    html { min-height: 100%; -webkit-text-size-adjust: 100%; scroll-padding-top: 12px; }
+    body { display: flow-root; min-height: 100vh; min-height: 100svh; }
+    /* La page peut toujours défiler ; seules les grandes vues ont des colonnes à défilement interne. */
     [hidden] { display: none !important; }
     body {
       margin: 0;
@@ -34,7 +37,7 @@
       width: calc(100% - 24px);
       height: calc(100vh - 24px);
       height: calc(100dvh - 24px);
-      min-height: 500px;
+      min-height: 600px;
       margin: 12px auto;
       display: flex;
       flex-direction: column;
@@ -166,7 +169,9 @@
     .set-note { color: var(--muted); font-size: .73rem; line-height: 1.5; margin: 10px 0 0; overflow-wrap: anywhere; }
     .image-card .small-definition { margin: 4px 0 0; color: var(--muted); font-size: .75rem; }
     .canvas-wrap { position: relative; min-width: 0; min-height: 0; background: #fff; }
-    canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+    canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: grab; touch-action: pan-y pinch-zoom; }
+    canvas.touch-manipulation { touch-action: none; }
+    canvas:focus-visible { outline: 3px solid #93b4ff; outline-offset: -3px; }
     canvas:active { cursor: grabbing; }
     .domain-card { grid-column: 2; padding: 10px 13px 12px; max-height: 180px; overflow: auto; scrollbar-width: thin; background: #f0fdf7; border-top: 1px solid #d1fae5; min-width: 0; }
     .domain-card .math-heading, .domain-card .math-formula { color: #047857; }
@@ -190,51 +195,140 @@
     .status .ok { color: var(--ok); font-weight: 600; }
     .print-header, .print-graph { display: none; }
 
+    .compact-nav { display: none; }
+    .extra-controls { min-width: 0; }
+    .extra-controls > summary {
+      padding: 13px 14px; font-size: .83rem; line-height: 1.4;
+      background: #f9fafc; border-bottom: 1px solid #eaecf0;
+    }
+    .extra-controls > summary::marker { color: var(--accent); }
+    .input-feedback { margin: 0; padding: 11px 14px; color: var(--danger); background: #fff2f0;
+      font-size: .85rem; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+    .graph-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+      padding: 6px 10px; border-bottom: 1px solid #eaecf0; flex: 0 0 auto; }
+    .zoom-buttons { display: flex; align-items: center; gap: 5px; }
+    .zoom-buttons button { min-width: 38px; min-height: 36px; padding: 6px 10px; }
+    .zoom-buttons .zoom-symbol { font-size: 1.25rem; line-height: 1; }
+    #touchModeButton { min-height: 36px; padding: 7px 12px; }
+    #touchModeButton[aria-pressed="true"] { background: var(--accent); color: #fff; }
+    .graph-gesture-hint { margin: 0; padding: 6px 12px 8px; font-size: .75rem; line-height: 1.5;
+      color: var(--muted); border-bottom: 1px solid #eaecf0; flex: 0 0 auto; }
+    .corner-card .legend-item { display: inline; }
     @media screen and (max-width: 1480px) { .banner-note { display: none; } }
-    
-    @media screen and (max-width: 1099px) {
-      main { height: auto; min-height: calc(100vh - 24px); }
-      .workspace { grid-template-columns: 220px minmax(0,1fr); flex: none; align-items: stretch; }
-      .graph-panel { height: max(600px, calc(100vh - 72px)); height: max(600px, calc(100dvh - 72px)); }
-      .controls-sidebar { max-height: max(600px, calc(100vh - 72px)); max-height: max(600px, calc(100dvh - 72px)); }
-      .learning-sidebar { grid-column: 1 / -1; }
-      .learning-sidebar > .sidebar-title { display: none; }
+    @media screen and (min-width: 1200px) and (min-height: 601px) {
+      .extra-controls > summary { display: none; }
+      .graph-gesture-hint { display: none; }
+      body.has-touch .graph-gesture-hint { display: block; }
+    }
+
+    /* Tablette / petite fenêtre : deux colonnes, puis les explications. */
+    @media screen and (max-width: 1199px), screen and (max-height: 600px) {
+      main { height: auto; min-height: calc(100vh - 24px); min-height: calc(100svh - 24px); }
+      .workspace { grid-template-columns: 236px minmax(0,1fr); flex: none; align-items: stretch; }
+      .graph-panel { height: max(640px, calc(100vh - 80px)); height: max(640px, calc(100svh - 80px)); }
+      .controls-sidebar { max-height: max(640px, calc(100vh - 80px)); max-height: max(640px, calc(100svh - 80px));
+        overflow-y: auto; overscroll-behavior: auto; }
+      .learning-sidebar { max-height: none; overflow: visible; overscroll-behavior: auto; grid-column: 1 / -1; }
       .study-summary { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
       .study-card + .study-card { border-top: 0; border-left: 1px solid var(--line); }
       .status { flex-direction: row; justify-content: space-between; }
-      .math-frame { grid-template-columns: 118px minmax(0,1fr); }
+      .math-frame { grid-template-columns: 115px minmax(0,1fr); }
+      .header-note { display: none; }
     }
-    
-    @media screen and (max-width: 719px) {
-      main { width: calc(100% - 16px); margin: 8px auto; gap: 8px; }
+
+    /* Téléphone : blocs dans le flux de la page, sans zone de défilement imbriquée. */
+    @media screen and (max-width: 899px), screen and (max-height: 520px) and (pointer: coarse) {
+      html { scroll-padding-top: calc(66px + env(safe-area-inset-top, 0px)); }
+      main { width: calc(100% - 16px); height: auto; min-height: calc(100vh - 16px);
+        min-height: calc(100svh - 16px); margin: 8px auto; gap: 8px;
+        padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px); }
+      .hero { padding: 2px 4px; }
       h1 { font-size: 1.12rem; }
       .header-note { display: none; }
-      .workspace { grid-template-columns: minmax(0,1fr); gap: 9px; }
-      .controls-sidebar { max-height: none; }
-      .options { gap: 10px; }
-      .controls { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+      .compact-nav { display: flex; align-items: stretch; gap: 5px; position: sticky;
+        top: 0; z-index: 20; padding: calc(6px + env(safe-area-inset-top, 0px)) 6px 6px;
+        background: #f6f7fb; border: 1px solid #dce3ed; border-radius: 11px;
+        box-shadow: 0 3px 8px rgba(16,24,40,.06); }
+      .compact-nav a { flex: 1; min-width: 0; min-height: 42px; display: flex; align-items: center;
+        justify-content: center; padding: 8px 5px; font-weight: 700; font-size: .83rem;
+        text-decoration: none; color: var(--accent-dark); border-radius: 8px; }
+      .compact-nav a:hover, .compact-nav a:focus-visible { background: #e0ebff; }
+      .workspace { display: grid; grid-template-columns: minmax(0,1fr); gap: 10px; flex: none; }
+      .controls-sidebar, .learning-sidebar { max-height: none; overflow: visible; overscroll-behavior: auto; }
+      .sidebar-title { padding: 12px 14px; }
+      .controls { padding: 12px; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
+      label { font-size: .85rem; }
+      input[type="text"], input[type="number"], #functionInput { min-height: 44px; font-size: 16px; }
       .button-row { grid-template-columns: repeat(4,minmax(0,1fr)); }
+      button { min-height: 44px; }
+      .options { gap: 9px; padding: 12px; }
+      .checkbox { min-height: 42px; align-items: center; grid-template-columns: 21px minmax(0,1fr); font-size: .86rem; }
+      input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
+      .interaction-hint, .scale-hint { font-size: .8rem; }
+      .examples { padding: 12px; }
+      .example-button { padding: 8px 11px; font-size: .82rem; }
+      .input-help, .notation-help { font-size: .83rem; }
+      summary { min-height: 22px; }
+      .extra-controls > summary { display: list-item; padding: 14px; min-height: 48px; border-radius: 0 0 14px 14px; }
+      .extra-controls[open] > summary { border-radius: 0; }
       .learning-sidebar { grid-column: auto; }
-      .graph-panel { height: 600px; }
-      .math-frame { grid-template-columns: 106px minmax(0,1fr); }
-      .image-card, .corner-card { padding: 10px 8px; }
-      .math-heading { font-size: .75rem; }
-      .math-formula { font-size: .9rem; }
-      .image-card .small-definition, .set-note { font-size: .7rem; }
-      .domain-card { padding: 10px; }
-      .domain-card .quality { margin-left: 0; }
-      .study-summary { grid-template-columns: minmax(0,1fr); }
-      .study-card + .study-card { border-left: 0; border-top: 1px solid var(--line); }
+      .graph-panel { height: auto; min-height: 0; }
+      .function-banner { padding: 12px; }
+      #displayFunction { font-size: 1rem; }
+      .banner-note { display: none; }
+      .graph-toolbar { padding: 6px 8px; }
+      .zoom-buttons button, #touchModeButton { min-height: 44px; }
+      .zoom-buttons button { min-width: 44px; }
+      .graph-gesture-hint { display: block; font-size: .78rem; }
+      .math-frame { display: grid; flex: none; grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto auto auto; }
+      .image-card { grid-column: 1; grid-row: 1; display: flex; flex-wrap: wrap; align-items: baseline;
+        column-gap: 8px; row-gap: 3px; padding: 10px 12px; border-right: 0; border-bottom: 1px solid #ece5ff;
+        overflow: visible; }
+      .image-card .small-definition { display: none; }
+      .image-card .quality { margin: 0; }
+      .image-card .math-formula { flex: 1 1 175px; }
+      #imageNotation, #imageSet { display: inline; }
+      #imageNotation::after { content: " "; }
+      .image-card .set-note { flex-basis: 100%; margin: 2px 0 0; font-size: .75rem; }
+      .canvas-wrap { grid-column: 1; grid-row: 2; height: clamp(340px, 58vh, 620px);
+        height: clamp(340px, 58svh, 620px); min-height: 340px; }
+      .domain-card { grid-column: 1; grid-row: 3; padding: 10px 12px; max-height: none; overflow: visible; }
+      .domain-card .quality { margin-left: 4px; }
+      .math-heading { font-size: .81rem; }
+      .math-formula { font-size: 1rem; }
+      .set-note { font-size: .75rem; }
+      .corner-card { grid-column: 1; grid-row: 4; display: flex; flex-wrap: wrap; gap: 5px 13px;
+        padding: 9px 12px; border-right: 0; border-top: 1px solid #eaecf0; font-size: .72rem; }
+      .corner-card .legend-item { display: inline-block; }
+      .corner-card br { display: none; }
+      .study-card { padding: 14px; }
+      .study-card h3 { font-size: .97rem; }
+      .study-card .result { font-size: 1rem; }
+      .study-card p { font-size: .85rem; }
+      .analysis-note, .status { font-size: .8rem; }
       .status { flex-direction: column; }
     }
-    @media screen and (max-width: 479px) { .button-row { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+    @media screen and (max-width: 479px) {
+      .button-row { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .study-summary { grid-template-columns: minmax(0,1fr); }
+      .study-card + .study-card { border-left: 0; border-top: 1px solid var(--line); }
+    }
+    @media screen and (max-height: 520px) and (pointer: coarse) {
+      .canvas-wrap { height: max(300px, 85svh); min-height: 300px; }
+    }
+    /* Grandes cibles tactiles même sur une tablette en mode paysage. */
+    @media screen and (any-pointer: coarse) {
+      input[type="text"], input[type="number"], #functionInput { font-size: 16px; min-height: 44px; }
+      button, .checkbox { min-height: 44px; }
+    }
 
-    
     @media print {
       @page { size: A4 portrait; margin: 10mm; }
-      body { background: #fff; }
+      body { background: #fff; min-height: 0; }
       main { display: block; width: 100%; height: auto; min-height: 0; margin: 0; }
-      .hero, .controls-sidebar, .sidebar-title, .function-banner, .input-help, .notation-help { display: none !important; }
+      .hero, .controls-sidebar, .sidebar-title, .function-banner, .input-help, .notation-help,
+      .compact-nav, .graph-toolbar, .graph-gesture-hint { display: none !important; }
       .workspace { display: block; }
       .panel { border: 0; border-radius: 0; box-shadow: none; background: #fff; overflow: visible; }
       .graph-panel { display: block; height: auto; }
@@ -282,12 +376,17 @@
       <h1>Traceur de fonctions</h1>
       <span class="header-note">Saisie à gauche · Graphique au centre · Repères à droite</span>
     </header>
+    <nav class="compact-nav" aria-label="Accès rapide">
+      <a href="#saisie">Fonction</a>
+      <a href="#graphique">Graphique</a>
+      <a href="#reperes">Repères</a>
+    </nav>
     <div class="workspace">
-      <aside class="panel controls-sidebar" aria-label="Saisie et réglages">
+      <aside class="panel controls-sidebar" id="saisie" aria-label="Saisie et réglages">
         <h2 class="sidebar-title">Saisie &amp; affichage</h2>
         <div class="controls">
           <label class="function-label">Fonction f(x)
-            <input autocomplete="off" id="functionInput" spellcheck="false" type="text" value="sin(x)"/>
+            <input autocomplete="off" autocapitalize="off" autocorrect="off" enterkeyhint="go" id="functionInput" spellcheck="false" type="text" value="sin(x)"/>
           </label>
           <label>x minimum<input id="xMinInput" inputmode="decimal" type="text" value="-10"/></label>
           <label>x maximum<input id="xMaxInput" inputmode="decimal" type="text" value="10"/></label>
@@ -298,13 +397,16 @@
             <button id="printButton">Imprimer</button>
           </div>
         </div>
+        <p id="inputFeedback" class="input-feedback" role="alert" hidden></p>
+        <details class="extra-controls" id="extraControls" open>
+          <summary>Réglages, exemples et aide</summary>
         <div class="options">
           <label class="checkbox"><input checked="" id="autoYCheckbox" type="checkbox"/>Ajuster automatiquement l’axe y</label>
           <label class="checkbox" title="Une unité a la même longueur sur les deux axes.">
             <input aria-describedby="equalScaleHint" id="equalScaleCheckbox" type="checkbox"/>Même échelle pour x et y (1:1)
           </label>
           <label class="checkbox"><input checked="" id="studyCheckbox" type="checkbox"/>Marquer les points remarquables</label>
-          <span class="interaction-hint">Molette : zoomer · Glisser : déplacer · Double-clic : ajuster la vue</span>
+          <span class="interaction-hint" id="controlsGestureHint">Molette : zoomer · Glisser : déplacer · Double-clic : ajuster la vue</span>
           <span class="scale-hint" hidden="" id="equalScaleHint">Échelle 1:1 : une unité a la même longueur sur les deux axes. La vue est élargie si nécessaire ; l’intervalle de x saisi reste la référence pour l’ajustement automatique.</span>
         </div>
         <div class="examples" id="examples"></div>
@@ -324,8 +426,9 @@
           <p>L’application analyse les polynômes et les fonctions rationnelles de degré limité, ainsi que de nombreuses compositions avec sqrt, abs, ln, log, exp et les fonctions trigonométriques. Les calculs utilisent des nombres à virgule flottante ; ≈ indique une valeur arrondie. Pour les degrés très élevés, les valeurs extrêmes ou les compositions complexes, l’analyse globale est limitée. L’application indique alors « non déterminé intégralement » ou affiche seulement les conditions de définition. Elle ne déduit jamais un ensemble image global des seuls points échantillonnés à l’écran. Les racines recherchées numériquement concernent uniquement la vue affichée et leur liste peut être incomplète.</p>
           <p>Les angles sont exprimés en radians. Les puissances fractionnaires, comme <strong>x^(1/3)</strong>, sont interprétées dans les réels. <strong>0^0</strong> est considéré comme non défini dans cette application. Pour un exposant variable, comme dans x^x, le domaine réel n’est pas toujours déterminé intégralement.</p>
         </details>
+        </details>
       </aside>
-      <section class="panel graph-panel" aria-label="Graphique de la fonction">
+      <section class="panel graph-panel" id="graphique" aria-label="Graphique de la fonction">
         <div aria-hidden="true" class="print-header">
           <h2>Graphique de la fonction</h2>
           <div class="print-details"><strong>Fonction :</strong> <span id="printFunction">f(x) = sin(x)</span></div>
@@ -337,6 +440,16 @@
           <span id="displayFunction">f(x) = sin(x)</span>
           <span class="banner-note">Abscisse = x · Ordonnée = y<br/>Bandes colorées : projections des ensembles globaux</span>
         </div>
+        <div class="graph-toolbar" aria-label="Commandes du graphique">
+          <div class="zoom-buttons" role="group" aria-label="Zoom et cadrage">
+            <button type="button" class="zoom-symbol" id="zoomOutButton" aria-label="Dézoomer" title="Dézoomer">−</button>
+            <button type="button" class="zoom-symbol" id="zoomInButton" aria-label="Zoomer" title="Zoomer">+</button>
+            <button type="button" id="fitGraphButton" title="Ajuster la hauteur de la courbe">Ajuster</button>
+          </div>
+          <button type="button" id="touchModeButton" aria-pressed="false" aria-controls="graphCanvas"
+            aria-describedby="graphGestureHint" hidden>Manipuler</button>
+        </div>
+        <p class="graph-gesture-hint" id="graphGestureHint">Molette : zoomer · Glisser : déplacer · Double-clic : ajuster.</p>
         <div class="math-frame">
           <aside aria-label="Ensemble image" class="image-card">
             <div class="math-heading">Ensemble image</div>
@@ -346,14 +459,14 @@
             <p class="set-note" id="imageNote"></p>
           </aside>
           <div class="canvas-wrap">
-            <canvas aria-label="Graphique de la fonction, avec l’abscisse x et l’ordonnée y" id="graphCanvas"></canvas>
+            <canvas aria-label="Graphique de la fonction, avec l’abscisse x et l’ordonnée y" aria-describedby="graphGestureHint" tabindex="0" id="graphCanvas"></canvas>
             <img alt="Graphique de la fonction" class="print-graph" id="printGraphImage"/>
           </div>
           <div class="corner-card">
-            <span class="rail-symbol">●</span> valeur incluse<br/>
-            <span class="rail-symbol">○</span> valeur exclue<br/>
-            <span class="rail-symbol">→</span> suite hors cadre<br/>
-            <span class="rail-symbol">±∞</span> vers l’infini
+            <span class="legend-item"><span class="rail-symbol">●</span> valeur incluse</span><br/>
+            <span class="legend-item"><span class="rail-symbol">○</span> valeur exclue</span><br/>
+            <span class="legend-item"><span class="rail-symbol">→</span> suite hors cadre</span><br/>
+            <span class="legend-item"><span class="rail-symbol">±∞</span> vers l’infini</span>
           </div>
           <section aria-label="Domaine de définition" class="domain-card">
             <div class="math-heading">Domaine · Valeurs de x autorisées <span class="quality" id="domainQuality">GLOBAL</span></div>
@@ -362,7 +475,7 @@
           </section>
         </div>
       </section>
-      <aside class="panel learning-sidebar" aria-label="Points remarquables et explications">
+      <aside class="panel learning-sidebar" id="reperes" aria-label="Points remarquables et explications">
         <h2 class="sidebar-title">Repères &amp; explications</h2>
         <div aria-live="polite" class="study-summary">
           <section class="study-card roots-card">
@@ -451,11 +564,13 @@
     let view = null;
     let width = 0;
     let height = 0;
-    let isDragging = false;
-    let lastPointer = null;
+
 
     function showMessage(text, type = "ok") {
       message.innerHTML = `<span class="${type}">${escapeHtml(text)}</span>`;
+      const feedback = document.getElementById('inputFeedback');
+      feedback.textContent = type === 'error' ? text : '';
+      feedback.hidden = type !== 'error';
     }
 
     function escapeHtml(text) {
@@ -1934,7 +2049,7 @@
         button.addEventListener("click", () => {
           functionInput.value = example;
           autoYCheckbox.checked = true;
-          drawFunction(true);
+          if (drawFunction(true)) revealGraphOnCompactScreen();
         });
         examples.appendChild(button);
       });
@@ -2115,7 +2230,12 @@
       const ys = preferAbove ? [top, bottom] : [bottom, top];
       const candidates = [];
       for (const y of ys) for (const x of [px + 14, px - w - 14, px - w / 2]) candidates.push({ x, y, width: w, height: h });
-      for (const y of [top - 45, bottom + 40]) for (const x of [px + 24, px - w - 24]) candidates.push({ x, y, width: w, height: h });
+      // Écarter les rangées selon la hauteur réelle du texte, notamment sur téléphone.
+      for (let row = 1; row <= 3; row++) {
+        for (const y of [top - row * (h + 12), bottom + row * (h + 12)]) {
+          for (const x of [px + 14, px - w - 14, px - w / 2]) candidates.push({ x, y, width: w, height: h });
+        }
+      }
       let chosen = null, bestScore = Infinity;
       for (const candidate of candidates) {
         const rect = { ...candidate, x: Math.max(5, Math.min(width - w - 5, candidate.x)), y: Math.max(5, Math.min(height - h - 5, candidate.y)) };
@@ -2334,10 +2454,12 @@
       return autoYRange(finiteY.length === 1 ? [finiteY[0], finiteY[0]] : finiteY);
     }
 
-    drawButton.addEventListener("click", () => drawFunction(false));
+    drawButton.addEventListener("click", () => {
+      if (drawFunction(false)) revealGraphOnCompactScreen();
+    });
     autoButton.addEventListener("click", () => {
       autoYCheckbox.checked = true;
-      drawFunction(true);
+      if (drawFunction(true)) revealGraphOnCompactScreen();
     });
     resetButton.addEventListener("click", resetView);
     document.getElementById('studyCheckbox').addEventListener('change', drawCanvas);
@@ -2355,86 +2477,225 @@
       showMessage(note ? `${text} ${note}.` : text, "ok");
     });
 
-    functionInput.addEventListener("keydown", event => {
-      if (event.key === "Enter") drawFunction(false);
+    for (const input of [functionInput, xMinInput, xMaxInput]) {
+      input.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' || event.isComposing) return;
+        event.preventDefault();
+        if (drawFunction(false)) revealGraphOnCompactScreen();
+      });
+    }
+
+    // Mise en page compacte : réglages repliables et accès rapide aux trois zones.
+    const compactLayout = window.matchMedia('(max-width: 899px), (max-height: 520px) and (pointer: coarse)');
+    const flowingLayout = window.matchMedia('(max-width: 1199px), (max-height: 600px)');
+    const coarsePointer = window.matchMedia('(any-pointer: coarse)');
+    const extraControls = document.getElementById('extraControls');
+    const touchModeButton = document.getElementById('touchModeButton');
+    const graphGestureHint = document.getElementById('graphGestureHint');
+    const controlsGestureHint = document.getElementById('controlsGestureHint');
+    const activePointers = new Map();
+    let touchManipulation = false;
+    let gesture = null;
+    let pendingGestureDraw = 0;
+    let previousCompactLayout = null;
+
+    function isTouchScreen() {
+      return coarsePointer.matches || (navigator.maxTouchPoints || 0) > 0;
+    }
+
+    function updateInteractionHelp() {
+      const touch = isTouchScreen();
+      document.body.classList.toggle('has-touch', touch);
+      touchModeButton.hidden = !(touch || flowingLayout.matches);
+      touchModeButton.textContent = touchManipulation ? 'Défilement' : 'Manipuler';
+      touchModeButton.setAttribute('aria-pressed', String(touchManipulation));
+      touchModeButton.setAttribute('aria-label', touchManipulation
+        ? 'Revenir au défilement de la page' : 'Activer le déplacement et le zoom tactiles du graphique');
+      canvas.classList.toggle('touch-manipulation', touchManipulation);
+      if (touch) {
+        graphGestureHint.textContent = touchManipulation
+          ? 'Glissez pour déplacer la courbe ; pincez à deux doigts pour zoomer. « Défilement » rend le défilement à la page.'
+          : 'Glissez pour faire défiler la page. « Manipuler » active le déplacement et le zoom à deux doigts.';
+        controlsGestureHint.textContent = 'Les boutons − et + zooment sur la courbe. Activez « Manipuler » pour déplacer ou pincer le graphique.';
+      } else if (flowingLayout.matches && !touchManipulation) {
+        graphGestureHint.textContent = 'Molette : faire défiler la page. Boutons − / + : zoomer. Glisser à la souris : déplacer la courbe.';
+        controlsGestureHint.textContent = 'La molette fait défiler la page. « Manipuler » permet de zoomer avec la molette sur le graphique.';
+      } else {
+        graphGestureHint.textContent = 'Molette : zoomer · Glisser : déplacer · Double-clic : ajuster.';
+        controlsGestureHint.textContent = graphGestureHint.textContent;
+      }
+    }
+
+    function clearGesture() {
+      const captured = [...activePointers.keys()];
+      activePointers.clear();
+      gesture = null;
+      for (const id of captured) {
+        try { if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id); } catch {}
+      }
+    }
+
+    function adaptLayout() {
+      const compact = compactLayout.matches;
+      if (previousCompactLayout === null || compact !== previousCompactLayout) {
+        // Replier les réglages ne modifie ni la fonction ni les cases cochées.
+        extraControls.open = !compact;
+        touchManipulation = false;
+        previousCompactLayout = compact;
+        clearGesture();
+      }
+      if (!flowingLayout.matches) extraControls.open = true;
+      updateInteractionHelp();
+      scheduleCanvasResize();
+    }
+
+    function revealGraphOnCompactScreen() {
+      if (!compactLayout.matches) return;
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      requestAnimationFrame(() => {
+        document.getElementById('graphique').scrollIntoView({ block: 'start', behavior: 'auto' });
+      });
+    }
+
+    for (const link of document.querySelectorAll('.compact-nav a')) {
+      link.addEventListener('click', event => {
+        event.preventDefault();
+        const target = document.getElementById(link.getAttribute('href').slice(1));
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+        target.scrollIntoView({ block: 'start', behavior: 'auto' });
+      });
+    }
+
+    touchModeButton.addEventListener('click', () => {
+      clearGesture();
+      touchManipulation = !touchManipulation;
+      updateInteractionHelp();
     });
 
-    xMinInput.addEventListener("keydown", event => {
-      if (event.key === "Enter") drawFunction(false);
-    });
+    function acceptableBounds(bounds) {
+      const values = [bounds.xMin, bounds.xMax, bounds.yMin, bounds.yMax];
+      if (!values.every(Number.isFinite)) return false;
+      for (const [lo, hi] of [[bounds.xMin, bounds.xMax], [bounds.yMin, bounds.yMax]]) {
+        const span = hi - lo;
+        const minimum = Math.max(1e-10, Number.EPSILON * Math.max(Math.abs(lo), Math.abs(hi)) * 128);
+        if (!(span >= minimum && span <= 1e12)) return false;
+      }
+      return true;
+    }
 
-    xMaxInput.addEventListener("keydown", event => {
-      if (event.key === "Enter") drawFunction(false);
-    });
-
-    canvas.addEventListener("wheel", event => {
-      if (!state) return;
-      event.preventDefault();
-
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left - plotLeft;
-      const mouseY = event.clientY - rect.top;
-      const graphX = pxToX(mouseX);
-      const graphY = pxToY(mouseY);
-      if (mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) return;
-      const factor = event.deltaY < 0 ? 0.85 : 1.18;
-      if ((state.xMax - state.xMin) * factor < Math.max(1e-10, Number.EPSILON * Math.max(Math.abs(state.xMin), Math.abs(state.xMax)) * 128) || (state.xMax - state.xMin) * factor > 1e12) return;
-
-      state.xMin = graphX + (state.xMin - graphX) * factor;
-      state.xMax = graphX + (state.xMax - graphX) * factor;
-      state.yMin = graphY + (state.yMin - graphY) * factor;
-      state.yMax = graphY + (state.yMax - graphY) * factor;
-
+    function setInteractiveBounds(bounds) {
+      if (!state || !acceptableBounds(bounds)) return false;
+      Object.assign(state, bounds);
       autoYCheckbox.checked = false;
-      syncXInputs();
-      drawCanvas();
-    }, { passive: false });
+      // Un seul dessin par image, même si le téléphone émet plusieurs mouvements.
+      if (!pendingGestureDraw) pendingGestureDraw = requestAnimationFrame(() => {
+        pendingGestureDraw = 0;
+        syncXInputs();
+        drawCanvas();
+      });
+      return true;
+    }
 
-    canvas.addEventListener("pointerdown", event => {
-      if (!state) return;
-      const rect = canvas.getBoundingClientRect();
-      if (event.clientX - rect.left < plotLeft || event.clientY - rect.top > height) return;
-      isDragging = true;
-      lastPointer = { x: event.clientX, y: event.clientY };
-      canvas.setPointerCapture(event.pointerId);
-    });
+    function zoomGraph(factor, px = width / 2, py = height / 2) {
+      if (!state || !Number.isFinite(factor) || factor <= 0 || width <= 0 || height <= 0) return;
+      const bounds = getViewBounds();
+      const anchorX = bounds.xMin + px / width * (bounds.xMax - bounds.xMin);
+      const anchorY = bounds.yMax - py / height * (bounds.yMax - bounds.yMin);
+      setInteractiveBounds({
+        xMin: anchorX + (bounds.xMin - anchorX) * factor,
+        xMax: anchorX + (bounds.xMax - anchorX) * factor,
+        yMin: anchorY + (bounds.yMin - anchorY) * factor,
+        yMax: anchorY + (bounds.yMax - anchorY) * factor
+      });
+    }
 
-    canvas.addEventListener("pointermove", event => {
-      if (!isDragging || !state || !lastPointer) return;
-
-      const dx = event.clientX - lastPointer.x;
-      const dy = event.clientY - lastPointer.y;
-      lastPointer = { x: event.clientX, y: event.clientY };
-
-      const xShift = -(dx / width) * (view.xMax - view.xMin);
-      const yShift = (dy / height) * (view.yMax - view.yMin);
-
-      state.xMin += xShift;
-      state.xMax += xShift;
-      state.yMin += yShift;
-      state.yMax += yShift;
-
-      autoYCheckbox.checked = false;
-      syncXInputs();
-      drawCanvas();
-    });
-
-    canvas.addEventListener("pointerup", event => {
-      isDragging = false;
-      lastPointer = null;
-      try { canvas.releasePointerCapture(event.pointerId); } catch {}
-    });
-
-    canvas.addEventListener("pointercancel", () => {
-      isDragging = false;
-      lastPointer = null;
-    });
-
-    canvas.addEventListener("dblclick", () => {
+    document.getElementById('zoomInButton').addEventListener('click', () => zoomGraph(.8));
+    document.getElementById('zoomOutButton').addEventListener('click', () => zoomGraph(1.25));
+    document.getElementById('fitGraphButton').addEventListener('click', () => {
       autoYCheckbox.checked = true;
       autoScaleCurrentView();
     });
 
+    canvas.addEventListener('wheel', event => {
+      if (!state || (flowingLayout.matches && !touchManipulation) || event.ctrlKey || event.metaKey) return;
+      const rect = canvas.getBoundingClientRect();
+      const px = event.clientX - rect.left - plotLeft, py = event.clientY - rect.top;
+      if (px < 0 || px > width || py < 0 || py > height || event.deltaY === 0) return;
+      event.preventDefault();
+      zoomGraph(event.deltaY < 0 ? .85 : 1 / .85, px, py);
+    }, { passive: false });
+
+    function pointerGeometry() {
+      const points = [...activePointers.values()].slice(0, 2);
+      if (!points.length) return null;
+      const center = points.length === 1 ? points[0] : {
+        x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2
+      };
+      const rect = canvas.getBoundingClientRect();
+      return { count: points.length, px: center.x - rect.left - plotLeft, py: center.y - rect.top,
+        distance: points.length === 2 ? Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) : 0 };
+    }
+
+    function rebaseGesture() {
+      const geometry = pointerGeometry();
+      if (!geometry || !state) { gesture = null; return; }
+      const bounds = getViewBounds();
+      gesture = { ...geometry, xSpan: bounds.xMax - bounds.xMin, ySpan: bounds.yMax - bounds.yMin,
+        anchorX: bounds.xMin + geometry.px / width * (bounds.xMax - bounds.xMin),
+        anchorY: bounds.yMax - geometry.py / height * (bounds.yMax - bounds.yMin) };
+    }
+
+    canvas.addEventListener('pointerdown', event => {
+      // En mode défilement, laisser le navigateur traiter les gestes tactiles.
+      if (!state || (event.pointerType === 'touch' && !touchManipulation)) return;
+      if (event.pointerType !== 'touch' && event.button !== 0) return;
+      const rect = canvas.getBoundingClientRect();
+      const px = event.clientX - rect.left - plotLeft, py = event.clientY - rect.top;
+      if (px < 0 || px > width || py < 0 || py > height) return;
+      activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      rebaseGesture();
+      canvas.setPointerCapture(event.pointerId);
+      if (event.cancelable) event.preventDefault();
+    });
+
+    canvas.addEventListener('pointermove', event => {
+      if (!state || !activePointers.has(event.pointerId) || !gesture) return;
+      activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      const current = pointerGeometry();
+      if (current.count !== gesture.count) { rebaseGesture(); return; }
+      const factor = current.count > 1 ? gesture.distance / Math.max(1, current.distance) : 1;
+      if (!Number.isFinite(factor) || factor <= 0) return;
+      const xSpan = gesture.xSpan * factor, ySpan = gesture.ySpan * factor;
+      const xMin = gesture.anchorX - current.px / width * xSpan;
+      const yMax = gesture.anchorY + current.py / height * ySpan;
+      setInteractiveBounds({ xMin, xMax: xMin + xSpan, yMin: yMax - ySpan, yMax });
+    });
+
+    function endPointer(event) {
+      if (!activePointers.delete(event.pointerId)) return;
+      try { if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); } catch {}
+      rebaseGesture();
+    }
+    for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(name, endPointer);
+    window.addEventListener('blur', clearGesture);
+    canvas.addEventListener('dblclick', event => {
+      if (!touchManipulation && (event.sourceCapabilities?.firesTouchEvents || compactLayout.matches)) return;
+      autoYCheckbox.checked = true;
+      autoScaleCurrentView();
+    });
+    canvas.addEventListener('keydown', event => {
+      if (event.ctrlKey || event.altKey || event.metaKey || !state) return;
+      const key = event.key;
+      if (!['+', '=', '-', '−', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(key)) return;
+      event.preventDefault();
+      if (key === '+' || key === '=') { zoomGraph(.8); return; }
+      if (key === '-' || key === '−') { zoomGraph(1.25); return; }
+      if (key === 'Home') { autoYCheckbox.checked = true; autoScaleCurrentView(); return; }
+      const b = getViewBounds();
+      const dx = (b.xMax - b.xMin) * (key === 'ArrowLeft' ? -.1 : key === 'ArrowRight' ? .1 : 0);
+      const dy = (b.yMax - b.yMin) * (key === 'ArrowDown' ? -.1 : key === 'ArrowUp' ? .1 : 0);
+      setInteractiveBounds({ xMin: b.xMin + dx, xMax: b.xMax + dx, yMin: b.yMin + dy, yMax: b.yMax + dy });
+    });
 
     let pendingLayoutResize = 0;
     function scheduleCanvasResize() {
@@ -2450,7 +2711,12 @@
             canvas.height !== Math.round(rect.height * dpr))) resizeCanvas();
       });
     }
-    window.addEventListener("resize", scheduleCanvasResize);
+    window.addEventListener('resize', () => { clearGesture(); scheduleCanvasResize(); });
+    for (const media of [compactLayout, flowingLayout, coarsePointer]) {
+      if (media.addEventListener) media.addEventListener('change', adaptLayout);
+      else media.addListener(adaptLayout);
+    }
+    extraControls.addEventListener('toggle', scheduleCanvasResize);
     if (typeof ResizeObserver !== 'undefined') {
       const graphResizeObserver = new ResizeObserver(scheduleCanvasResize);
       graphResizeObserver.observe(canvas.parentElement);
@@ -2458,6 +2724,7 @@
     window.addEventListener("beforeprint", preparePrint);
     window.addEventListener("afterprint", () => requestAnimationFrame(resizeCanvas));
 
+    adaptLayout();
     equalScaleHint.hidden = !equalScaleCheckbox.checked;
     createExampleButtons();
     resizeCanvas();
