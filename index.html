@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Traceur de fonctions — ordinateur, tablette et téléphone</title>
+  <title>Traceur de fonctions — impression paysage et PDF</title>
   <!-- Application pédagogique autonome, utilisable sans connexion. -->
   <style>
 
@@ -153,7 +153,7 @@
     .math-frame {
       display: grid;
       grid-template-columns: clamp(118px, 9.3vw, 168px) minmax(0,1fr);
-      grid-template-rows: minmax(0,1fr) auto;
+      grid-template-rows: minmax(0,1fr) auto auto;
       flex: 1;
       min-height: 0;
       min-width: 0;
@@ -173,11 +173,35 @@
     canvas.touch-manipulation { touch-action: none; }
     canvas:focus-visible { outline: 3px solid #93b4ff; outline-offset: -3px; }
     canvas:active { cursor: grabbing; }
-    .domain-card { grid-column: 2; padding: 10px 13px 12px; max-height: 180px; overflow: auto; scrollbar-width: thin; background: #f0fdf7; border-top: 1px solid #d1fae5; min-width: 0; }
+    #probeCanvas { pointer-events: none; cursor: default; }
+    #graphCanvas.probe-near { cursor: crosshair; }
+    #releaseProbeButton { font-size: .8rem; }
+    .probe-help { color: #7f1d4c; font-size: .75rem; line-height: 1.5; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+    .domain-card { grid-column: 2; grid-row: 3; padding: 10px 13px 12px; max-height: 180px; overflow: auto; scrollbar-width: thin; background: #f0fdf7; border-top: 1px solid #d1fae5; min-width: 0; }
     .domain-card .math-heading, .domain-card .math-formula { color: #047857; }
     .domain-card .quality { margin-left: 6px; }
     .domain-card .set-note { margin-top: 3px; }
-    .corner-card { padding: 10px 11px; grid-column: 1; grid-row: 2; border-right: 1px solid #ece5ff; color: var(--muted); font-size: .68rem; line-height: 1.55; }
+    .value-table-card { grid-column: 2; grid-row: 2; min-width: 0; background: #ffffff; border-top: 1px solid #eaecf0; }
+    .value-table-header { padding: 8px 13px 6px; font-size: .79rem; font-weight: 750; color: #344054; }
+    .value-table-box { --table-plot-left: 14%; position: relative; min-width: 0; height: 96px; border-top: 1px solid #eaecf0; background: #fff; overflow: hidden; }
+    .value-table-labels { position: absolute; inset: 0 auto 0 0; width: var(--table-plot-left); display: grid; grid-template-rows: 1fr 1fr; background: #f8fafc; border-right: 1px solid #dbe3ef; }
+    .value-table-labels div { display: flex; align-items: center; justify-content: flex-start; padding: 4px 8px; font-size: 14px; font-weight: 800; color: #344054; font-family: 'Cambria Math','DejaVu Sans','Segoe UI',sans-serif; }
+    .value-table-grid { position: absolute; inset: 0 0 0 var(--table-plot-left); overflow: visible; }
+    .value-row-divider { position: absolute; left: 0; right: 0; top: calc(50% - .5px); border-top: 1px solid #dbe3ef; }
+    .value-table-cell { position: absolute; padding: 0; text-align: center; border: 0; overflow: visible; }
+    .value-table-cell::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; border-left: 1px solid #dbe3ef; }
+    .value-table-cell.row-x { top: 0; height: 50%; font-size: 12px; font-weight: 700; color: #344054; }
+    .value-table-cell.row-y { top: 50%; height: 50%; font-size: 12px; color: #1f2937; }
+    .value-table-text { position: absolute; top: 50%; transform: translate(-50%, -50%); white-space: nowrap; line-height: 1.25; font-variant-numeric: tabular-nums; }
+    .value-table-text .value-sign { margin-right: .15em; }
+    .value-table-text.stacked .value-sign { display: block; margin: 0; }
+    .value-table-text span { white-space: nowrap; }
+    .value-table-end { position: absolute; right: 0; top: 0; bottom: 0; border-right: 1px solid #dbe3ef; }
+    .value-table-note { margin: 0; padding: 6px 13px 9px; font-size: .71rem; line-height: 1.55; color: var(--muted); background: #fcfcfd; border-top: 1px solid #eef1f4; }
+    .value-undefined { color: #b42318; font-weight: 750; }
+    .corner-card { padding: 10px 11px; grid-column: 1; grid-row: 2 / span 2; border-right: 1px solid #ece5ff; color: var(--muted); font-size: .68rem; line-height: 1.55; }
     .rail-symbol { font-size: .9rem; color: #344054; }
 
     .study-summary { display: grid; grid-template-columns: minmax(0,1fr); }
@@ -281,7 +305,7 @@
       .zoom-buttons button, #touchModeButton { min-height: 44px; }
       .zoom-buttons button { min-width: 44px; }
       .graph-gesture-hint { display: block; font-size: .78rem; }
-      .math-frame { display: grid; flex: none; grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto auto auto; }
+      .math-frame { display: grid; flex: none; grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto auto auto auto; }
       .image-card { grid-column: 1; grid-row: 1; display: flex; flex-wrap: wrap; align-items: baseline;
         column-gap: 8px; row-gap: 3px; padding: 10px 12px; border-right: 0; border-bottom: 1px solid #ece5ff;
         overflow: visible; }
@@ -293,12 +317,16 @@
       .image-card .set-note { flex-basis: 100%; margin: 2px 0 0; font-size: .75rem; }
       .canvas-wrap { grid-column: 1; grid-row: 2; height: clamp(340px, 58vh, 620px);
         height: clamp(340px, 58svh, 620px); min-height: 340px; }
-      .domain-card { grid-column: 1; grid-row: 3; padding: 10px 12px; max-height: none; overflow: visible; }
+      .value-table-card { grid-column: 1; grid-row: 3; }
+      .value-table-header { padding: 8px 12px 6px; }
+      .value-table-box { height: 94px; }
+      .value-table-note { padding: 6px 12px 9px; font-size: .74rem; }
+      .domain-card { grid-column: 1; grid-row: 4; padding: 10px 12px; max-height: none; overflow: visible; }
       .domain-card .quality { margin-left: 4px; }
       .math-heading { font-size: .81rem; }
       .math-formula { font-size: 1rem; }
       .set-note { font-size: .75rem; }
-      .corner-card { grid-column: 1; grid-row: 4; display: flex; flex-wrap: wrap; gap: 5px 13px;
+      .corner-card { grid-column: 1; grid-row: 5; display: flex; flex-wrap: wrap; gap: 5px 13px;
         padding: 9px 12px; border-right: 0; border-top: 1px solid #eaecf0; font-size: .72rem; }
       .corner-card .legend-item { display: inline-block; }
       .corner-card br { display: none; }
@@ -323,49 +351,137 @@
       button, .checkbox { min-height: 44px; }
     }
 
+    /* Feuille papier indépendante : la vue interactive ne change jamais de taille. */
+    #paperSheet {
+      display: none;
+      --muted: #344054;
+      --line: #b6c1cf;
+      width: 281mm;
+      height: 193mm;
+      padding: 0;
+      color: #162033;
+      background: white;
+      font: 9pt/1.4 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      box-sizing: border-box;
+    }
+    #paperSheet.paper-ready {
+      display: flex; flex-direction: column; gap: 2mm;
+      position: fixed; left: -20000px; top: 0;
+      visibility: hidden; pointer-events: none;
+    }
+    #paperSheet * { box-sizing: border-box; }
+    #paperSheet .paper-heading {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 4mm; flex: 0 0 auto; padding: 0 .5mm;
+    }
+    #paperSheet .paper-heading h1 { font-size: 13pt; line-height: 1.4; margin: 0; }
+    #paperSheet .paper-heading span { font-size: 8pt; color: #344054; }
+    #paperSheet .paper-layout {
+      display: grid; grid-template-columns: 36mm minmax(0,1fr) 43mm;
+      gap: 2mm; flex: 1; min-height: 0;
+    }
+    #paperSheet .paper-panel {
+      min-width: 0; min-height: 0; border: .25mm solid #b6c1cf;
+      border-radius: 2.5mm; overflow: hidden; background: #fff;
+    }
+    #paperSheet .paper-side-content { padding: 0; }
+    #paperSheet .sidebar-title {
+      margin: 0; padding: 2.5mm 2mm; font-size: 8.5pt; line-height: 1.4;
+      background: #f3f6fa; border-bottom: .2mm solid #cad3df;
+    }
+    #paperSheet .paper-controls { padding: 2.5mm 2mm; border-bottom: .2mm solid #cad3df; }
+    #paperSheet .paper-field-label { font-size: 8pt; font-weight: 700; margin-bottom: 1mm; }
+    #paperSheet .paper-value {
+      min-height: 6mm; border: .2mm solid #a9b6c7; border-radius: 1.5mm;
+      padding: 1mm 1.5mm; font-size: 8.5pt; font-weight: 650;
+      overflow-wrap: anywhere; background: white;
+    }
+    #paperSheet .paper-x-fields { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1.5mm; margin: 2mm 0; }
+    #paperSheet .paper-x-fields .paper-value { font-size: 7.5pt; }
+    #paperSheet .paper-actions { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1mm; }
+    #paperSheet .paper-action {
+      background: #eef4ff; color: #1d4ed8; border-radius: 1mm; padding: 1.2mm .4mm;
+      font-size: 7pt; font-weight: 700; text-align: center;
+    }
+    #paperSheet .paper-action.primary { background: #2563eb; color: #fff; }
+    #paperSheet .paper-options { padding: 2.5mm 2mm; border-bottom: .2mm solid #cad3df; }
+    #paperSheet .paper-option { display: flex; align-items: flex-start; gap: 1.5mm; font-size: 8pt; line-height: 1.4; margin-bottom: 2mm; }
+    #paperSheet .paper-check {
+      display: inline-flex; width: 2.8mm; height: 2.8mm; flex: 0 0 2.8mm;
+      align-items: center; justify-content: center; border: .22mm solid #667085;
+      border-radius: .3mm; margin-top: .35mm; color: white; font-size: 8pt; font-weight: 800;
+    }
+    #paperSheet .paper-check.checked { background: #2563eb; border-color: #2563eb; }
+    #paperSheet .paper-option-note { color: #344054; font-size: 7.5pt; line-height: 1.5; margin: 1mm 0 0; }
+    #paperSheet .paper-examples { padding: 2.5mm 2mm; }
+    #paperSheet .paper-example-list { display: flex; flex-wrap: wrap; gap: 1mm; }
+    #paperSheet .paper-example {
+      max-width: 100%; display: inline-block; padding: .6mm 1mm; font-size: 7.2pt;
+      background: #f2f4f7; color: #344054; border-radius: 1mm; overflow-wrap: anywhere;
+    }
+    #paperSheet .paper-help-title { padding: 2mm; font-size: 7.5pt; color: #344054; border-top: .2mm solid #cad3df; }
+    #paperSheet .paper-graph { display: flex; flex-direction: column; }
+    #paperSheet .paper-function {
+      flex: 0 0 auto; border-bottom: .25mm solid #b6c1cf; padding: 2.5mm 3mm;
+      font-size: 11pt; line-height: 1.4; font-weight: 750; overflow-wrap: anywhere;
+    }
+    #paperSheet .paper-math-space {
+      display: flex; flex: 1; min-height: 0; min-width: 0;
+      justify-content: center; align-items: center;
+    }
+    #paperSheet .paper-math {
+      display: grid; grid-template-columns: 27mm var(--paper-canvas-width, 164mm);
+      grid-template-rows: auto auto auto; width: max-content; max-width: 100%;
+    }
+    #paperSheet .paper-image { grid-column: 1; grid-row: 1; padding: 2.5mm 2mm; background: #faf8ff; border-right: .2mm solid #ddd3f8; min-width: 0; }
+    #paperSheet .paper-vector { grid-column: 2; grid-row: 1; width: var(--paper-canvas-width, 164mm); height: var(--paper-canvas-height, 110mm); line-height: 0; }
+    #paperSheet .paper-vector svg { display: block; width: 100%; height: 100%; overflow: hidden; }
+    #paperSheet .paper-table { grid-column: 2; grid-row: 2; min-width: 0; background: #fff; border-top: .2mm solid #dbe3ef; }
+    #paperSheet .paper-domain { grid-column: 2; grid-row: 3; padding: 2.5mm; background: #f0fdf7; border-top: .2mm solid #b7dfce; min-width: 0; }
+    #paperSheet .paper-legend { grid-column: 1; grid-row: 2 / span 2; padding: 2.5mm 2mm; border-right: .2mm solid #ddd3f8; font-size: 7.5pt; color: #344054; line-height: 1.4; }
+    #paperSheet .paper-legend .legend-item { display: block; margin-bottom: 1mm; }
+    #paperSheet .paper-legend br { display: none; }
+    #paperSheet .rail-symbol { font-size: 9pt; }
+    #paperSheet .paper-image .math-heading, #paperSheet .paper-image .math-formula { color: #6d28d9; }
+    #paperSheet .paper-domain .math-heading, #paperSheet .paper-domain .math-formula { color: #047857; }
+    #paperSheet .paper-table .value-table-header { padding: 2mm 2.5mm 1.5mm; font-size: 8pt; font-weight: 750; color: #344054; }
+    #paperSheet .paper-table .value-table-box { height: 18mm; border-top: .2mm solid #dbe3ef; }
+    #paperSheet .paper-table .value-table-labels { border-right: .2mm solid #dbe3ef; }
+    #paperSheet .paper-table .value-table-labels div { font-size: 8.2pt; padding: 1mm; }
+    #paperSheet .paper-table .value-row-divider { border-top: .2mm solid #dbe3ef; }
+    #paperSheet .paper-table .value-table-cell::before { border-left: .2mm solid #dbe3ef; }
+    #paperSheet .paper-table .value-table-cell.row-x { font-size: 7.6pt; }
+    #paperSheet .paper-table .value-table-cell.row-y { font-size: 7.7pt; }
+    #paperSheet .paper-table .value-table-end { border-right: .2mm solid #dbe3ef; }
+    #paperSheet .paper-table .value-table-note { padding: 1.3mm 2.5mm 1.8mm; font-size: 7.2pt; line-height: 1.4; color: #475467; }
+    #paperSheet .math-heading { font-size: 8.5pt; line-height: 1.4; }
+    #paperSheet .math-formula { font-size: 10pt; line-height: 1.55; }
+    #paperSheet .paper-image .math-formula > span { display: block; }
+    #paperSheet .math-formula .unknown { font-size: 9pt; }
+    #paperSheet .quality { margin: 1mm 0; padding: .5mm 1mm; font-size: 6.5pt; border: .2mm solid #cad3df; }
+    #paperSheet .small-definition, #paperSheet .set-note { font-size: 8pt; line-height: 1.5; color: #344054; margin: 1.5mm 0 0; }
+    #paperSheet .study-summary { display: block; }
+    #paperSheet .study-card { padding: 3mm 2.5mm; }
+    #paperSheet .study-card + .study-card { border-left: 0; border-top: .25mm solid #b6c1cf; }
+    #paperSheet .study-card h3 { margin: 0 0 2mm; font-size: 9pt; line-height: 1.4; }
+    #paperSheet .study-card .result { font-size: 9.5pt; line-height: 1.5; }
+    #paperSheet .study-card p { font-size: 8pt; line-height: 1.5; margin: 2mm 0 0; color: #344054; }
+    #paperSheet .analysis-note { padding: 2.5mm; font-size: 7.7pt; line-height: 1.5; }
+    #paperSheet .status { display: flex; flex-direction: column; padding: 2.5mm; gap: 2mm; font-size: 7.8pt; line-height: 1.5; }
+    #paperSheet .paper-footnote { flex: 0 0 auto; font-size: 7.5pt; color: #344054; padding: 0 .5mm; }
+    .print-tip { padding: 9px 14px; margin: 0; font-size: .75rem; line-height: 1.5; color: #475467; border-bottom: 1px solid #eaecf0; }
+
+    @page { size: A4 landscape; margin: 8mm; }
     @media print {
-      @page { size: A4 portrait; margin: 10mm; }
-      body { background: #fff; min-height: 0; }
-      main { display: block; width: 100%; height: auto; min-height: 0; margin: 0; }
-      .hero, .controls-sidebar, .sidebar-title, .function-banner, .input-help, .notation-help,
-      .compact-nav, .graph-toolbar, .graph-gesture-hint { display: none !important; }
-      .workspace { display: block; }
-      .panel { border: 0; border-radius: 0; box-shadow: none; background: #fff; overflow: visible; }
-      .graph-panel { display: block; height: auto; }
-      .print-header { display: block; padding: 0 0 4mm; }
-      .print-header h2 { margin: 0 0 2mm; font-size: 16pt; }
-      .print-details { font-size: 9pt; line-height: 1.35; margin: 1mm 0; color: #344054; }
-      .math-frame {
-        display: grid;
-        grid-template-columns: 32mm minmax(0,1fr);
-        grid-template-rows: auto auto;
-        width: calc(32mm + var(--print-plot-width, 157mm));
-        max-width: 100%;
-        margin: 0 auto;
-        break-inside: avoid;
+      html, body { margin: 0 !important; padding: 0 !important; min-height: 0 !important; height: auto !important; background: white !important; }
+      body { display: block; }
+      body > main { display: none !important; }
+      #paperSheet.paper-ready {
+        display: flex !important; position: static !important; visibility: visible !important;
+        width: 281mm; height: 193mm; margin: 0; padding: 0;
+        break-inside: avoid; page-break-inside: avoid;
       }
-      .image-card { padding: 3mm 2mm; overflow: visible; }
-      .image-card .quality { margin: 2mm 0 1mm; }
-      .math-heading { font-size: 9pt; }
-      .math-formula { font-size: 10pt; }
-      #imageSet.unknown { font-size: 9pt; }
-      .set-note, .image-card .small-definition { font-size: 7.5pt; }
-      .quality { font-size: 6pt; }
-      .canvas-wrap { position: relative; min-height: 0; }
-      canvas { display: none !important; }
-      .print-graph { display: block; width: 100%; height: auto; max-width: 100%; margin: 0; }
-      .domain-card { padding: 3mm; max-height: none; overflow: visible; }
-      .corner-card { padding: 3mm 2mm; font-size: 7pt; }
-      .learning-sidebar { overflow: visible; margin-top: 3mm; }
-      .study-summary { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); border-top: 1px solid var(--line); break-inside: avoid; }
-      .study-card { padding: 3mm; }
-      .study-card + .study-card { border-top: 0; border-left: 1px solid var(--line); }
-      .study-card h3 { font-size: 10pt; margin-bottom: 2mm; }
-      .study-card .result { font-size: 10pt; line-height: 1.45; }
-      .study-card p { font-size: 8pt; margin-top: 2mm; line-height: 1.45; }
-      .analysis-note { font-size: 7.5pt; padding: 2mm 0; line-height: 1.4; }
-      .status { flex-direction: row; justify-content: space-between; padding: 2mm 0 0; font-size: 7.5pt; line-height: 1.4; border-top: 0; }
-      .math-frame, .study-summary { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      #paperSheet, #paperSheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
 
   </style>
@@ -394,9 +510,10 @@
             <button class="primary" id="drawButton">Tracer</button>
             <button id="autoButton" title="Ajuster automatiquement la vue">Ajuster</button>
             <button id="resetButton">Réinitialiser</button>
-            <button id="printButton">Imprimer</button>
+            <button id="printButton" title="Imprimer la vue affichée en A4 paysage ou l’enregistrer en PDF">Imprimer / PDF</button>
           </div>
         </div>
+        <p class="print-tip">Impression : A4 paysage, vue actuelle et traits renforcés. Pour créer un PDF, choisissez « Enregistrer en PDF » dans la fenêtre d’impression.</p>
         <p id="inputFeedback" class="input-feedback" role="alert" hidden></p>
         <details class="extra-controls" id="extraControls" open>
           <summary>Réglages, exemples et aide</summary>
@@ -407,6 +524,7 @@
           </label>
           <label class="checkbox"><input checked="" id="studyCheckbox" type="checkbox"/>Marquer les points remarquables</label>
           <span class="interaction-hint" id="controlsGestureHint">Molette : zoomer · Glisser : déplacer · Double-clic : ajuster la vue</span>
+          <span class="probe-help" id="probeHelp">Approchez la souris de la courbe pour lire P(x ; y). Clic sur la courbe : figer P, notamment pour l’impression. Échap ou « Libérer P » : effacer. L’accrochage agit seulement tout près d’une graduation.</span>
           <span class="scale-hint" hidden="" id="equalScaleHint">Échelle 1:1 : une unité a la même longueur sur les deux axes. La vue est élargie si nécessaire ; l’intervalle de x saisi reste la référence pour l’ajustement automatique.</span>
         </div>
         <div class="examples" id="examples"></div>
@@ -429,13 +547,6 @@
         </details>
       </aside>
       <section class="panel graph-panel" id="graphique" aria-label="Graphique de la fonction">
-        <div aria-hidden="true" class="print-header">
-          <h2>Graphique de la fonction</h2>
-          <div class="print-details"><strong>Fonction :</strong> <span id="printFunction">f(x) = sin(x)</span></div>
-          <div class="print-details"><strong>Vue affichée :</strong> <span id="printRange"></span></div>
-          <div class="print-details"><strong>Échelle :</strong> <span id="printScale"></span></div>
-          <div class="print-details"><strong>Remarque :</strong> <span id="printMessage"></span></div>
-        </div>
         <div class="function-banner">
           <span id="displayFunction">f(x) = sin(x)</span>
           <span class="banner-note">Abscisse = x · Ordonnée = y<br/>Bandes colorées : projections des ensembles globaux</span>
@@ -445,6 +556,7 @@
             <button type="button" class="zoom-symbol" id="zoomOutButton" aria-label="Dézoomer" title="Dézoomer">−</button>
             <button type="button" class="zoom-symbol" id="zoomInButton" aria-label="Zoomer" title="Zoomer">+</button>
             <button type="button" id="fitGraphButton" title="Ajuster la hauteur de la courbe">Ajuster</button>
+            <button type="button" id="releaseProbeButton" title="Effacer le point figé et reprendre la lecture à la souris" hidden>Libérer P</button>
           </div>
           <button type="button" id="touchModeButton" aria-pressed="false" aria-controls="graphCanvas"
             aria-describedby="graphGestureHint" hidden>Manipuler</button>
@@ -459,9 +571,18 @@
             <p class="set-note" id="imageNote"></p>
           </aside>
           <div class="canvas-wrap">
-            <canvas aria-label="Graphique de la fonction, avec l’abscisse x et l’ordonnée y" aria-describedby="graphGestureHint" tabindex="0" id="graphCanvas"></canvas>
-            <img alt="Graphique de la fonction" class="print-graph" id="printGraphImage"/>
+            <canvas aria-label="Graphique de la fonction, avec l’abscisse x et l’ordonnée y" aria-describedby="graphGestureHint probeHelp" tabindex="0" id="graphCanvas"></canvas>
+            <canvas id="probeCanvas" aria-hidden="true"></canvas>
+            <output id="probeReadingText" class="sr-only"></output>
           </div>
+          <section class="value-table-card" aria-label="Tableau de valeurs">
+            <div class="value-table-header">Tableau de valeurs aligné sur l’axe des x</div>
+            <div class="value-table-box" id="valueTableBox">
+              <div class="value-table-labels"><div>x</div><div>f(x)</div></div>
+              <div class="value-table-grid" id="valueTableGrid"></div>
+            </div>
+            <p class="value-table-note" id="valueTableNote">= : valeur exacte · ≈ : arrondi à 3 chiffres significatifs… · ND : non défini. Les points gris suivent le tableau.</p>
+          </section>
           <div class="corner-card">
             <span class="legend-item"><span class="rail-symbol">●</span> valeur incluse</span><br/>
             <span class="legend-item"><span class="rail-symbol">○</span> valeur exclue</span><br/>
@@ -498,11 +619,16 @@
     </div>
   </main>
 
+  <section id="paperSheet" aria-hidden="true" inert></section>
+
   <script>
     "use strict";
 
     const canvas = document.getElementById("graphCanvas");
-    const ctx = canvas.getContext("2d");
+    let ctx = canvas.getContext("2d");
+    let renderTextScale = 1;
+    let isPreparingPrint = false;
+    let printSessionActive = false;
     const functionInput = document.getElementById("functionInput");
     const xMinInput = document.getElementById("xMinInput");
     const xMaxInput = document.getElementById("xMaxInput");
@@ -516,11 +642,7 @@
     const message = document.getElementById("message");
     const rangeInfo = document.getElementById("rangeInfo");
     const examples = document.getElementById("examples");
-    const printFunction = document.getElementById("printFunction");
-    const printRange = document.getElementById("printRange");
-    const printScale = document.getElementById("printScale");
-    const printGraphImage = document.getElementById("printGraphImage");
-    const printMessage = document.getElementById("printMessage");
+    const valueTableCard = document.querySelector('.value-table-card');
 
     const FUNCTIONS = {
       sin: Math.sin,
@@ -629,7 +751,7 @@
           const raw = s.slice(start, i);
           const value = Number(raw);
           if (!Number.isFinite(value)) throw new Error(`Nombre invalide : ${raw}`);
-          tokens.push({ type: "number", value });
+          tokens.push({ type: "number", value, raw });
           continue;
         }
 
@@ -809,10 +931,10 @@
       function primary() {
         const token = tokens[position++];
         if (!token) throw new Error('Fin inattendue de l’expression.');
-        if (token.type === 'number') return expressionNode('number', { value: token.value });
+        if (token.type === 'number') return expressionNode('number', { value: token.value, raw: token.raw });
         if (token.type === 'name') {
           if (token.value === 'x') return expressionNode('variable', {});
-          if (Object.hasOwn(CONSTANTS, token.value)) return expressionNode('number', { value: CONSTANTS[token.value] });
+          if (Object.hasOwn(CONSTANTS, token.value)) return expressionNode('number', { value: CONSTANTS[token.value], symbol: token.value });
           if (Object.hasOwn(FUNCTIONS, token.value)) {
             if (!match('leftParen')) throw new Error(`Une parenthèse est nécessaire après ${token.value}.`);
             const arg = addition();
@@ -1724,6 +1846,7 @@
     }
 
     function resizeCanvas() {
+      if (printSessionActive || isPreparingPrint) return;
       const rect = canvas.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
       const dpr = window.devicePixelRatio || 1;
@@ -1746,6 +1869,7 @@
       state.specialPoints = collectStudySpecialPoints();
       state.visibleRoots = studyRootsInView();
       state.originInfo = originInformation();
+      state.valueSamples = computeValueTableSamples();
       annotationBoxes = axisLabelLayout().labels.map(x => ({ ...x }));
       ctx.save();
       ctx.translate(plotLeft, 0);
@@ -1753,12 +1877,15 @@
       drawGrid();
       drawFunctionLine();
       drawSpecialPoints();
+      drawValueSamplePoints();
       drawStudyPoints();
       drawAxisLabels();
       ctx.restore();
       drawProjectionBands();
       updateStudyInfo();
+      updateValueTable();
       updateRangeInfo();
+      refreshProbeForView();
     }
 
     function axisLabelLayout() {
@@ -1768,7 +1895,7 @@
       const axisX = yAxisVisible ? xToPx(0) : 0;
       const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
       const small = width < 400;
-      const boxWidth = Math.min(width - 10, small ? 104 : 124), boxHeight = 25;
+      const boxWidth = Math.min(width - 10, (small ? 104 : 124) * renderTextScale), boxHeight = 25 * renderTextScale;
       const xLabel = { text: 'Abscisse = x', x: width - boxWidth - 5,
         y: clamp(axisY >= 40 ? axisY - boxHeight - 8 : axisY + 8, 5, height - boxHeight - 5), width: boxWidth, height: boxHeight };
       const yLabel = { text: 'Ordonnée = y', x: clamp(axisX > boxWidth + 15 ? axisX - boxWidth - 9 : axisX + 9, 5, width - boxWidth - 5),
@@ -1807,7 +1934,7 @@
         ctx.fill();
       }
 
-      ctx.font = (width < 400 ? "700 11px" : "700 13px") + " system-ui, sans-serif";
+      ctx.font = graphFont((width < 400 ? "700 11px" : "700 13px") + " system-ui, sans-serif");
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.lineJoin = "round";
@@ -1827,26 +1954,54 @@
     function getGridSteps() {
       const xRange = view.xMax - view.xMin;
       const yRange = view.yMax - view.yMin;
-      const xStep = niceStep(xRange, width / 95);
-
+      let xStep = niceStep(xRange, width / 95);
+      // Une même graduation sert à la courbe, au tableau et au PDF.
+      // Sur un écran très large, limiter aussi la densité pour que chaque valeur reste lisible sur A4.
+      const tickCount = step => Math.floor(view.xMax / step) - Math.ceil(view.xMin / step) + 1;
+      for (let pass = 0; tickCount(xStep) > 14 && pass < 12; pass++) {
+        const power = 10 ** Math.floor(Math.log10(xStep));
+        const factor = xStep / power;
+        xStep = (factor < 1.9 ? 2 : factor < 4.9 ? 5 : 10) * power;
+      }
       const yStep = equalScaleCheckbox.checked ? xStep : niceStep(yRange, height / 72);
       return { xStep, yStep };
     }
 
+    function printTickStride(step, vertical) {
+      if (!isPreparingPrint) return 1;
+      const lo = vertical ? view.yMin : view.xMin, hi = vertical ? view.yMax : view.xMax;
+      const spacing = step / (hi - lo) * (vertical ? height : width);
+      let required = 19 * renderTextScale;
+      if (!vertical) {
+        ctx.save(); ctx.font = graphFont('12px system-ui, sans-serif');
+        let longest = 0;
+        const first = Math.ceil(lo / step), last = Math.floor(hi / step);
+        if (!Number.isFinite(first) || !Number.isFinite(last) || last - first > 2000) { ctx.restore(); return 1; }
+        for (let n = first; n <= last; n++) longest = Math.max(longest, ctx.measureText(formatNumber(n * step)).width);
+        required = longest + 7 * renderTextScale;
+        ctx.restore();
+      }
+      return Math.max(1, Math.ceil(required / spacing));
+    }
+
     function drawGrid() {
       const { xStep, yStep } = getGridSteps();
+      const xStride = printTickStride(xStep, false), yStride = printTickStride(yStep, true);
       const axisLabels = axisLabelLayout().labels;
+      const drawnTickLabels = [];
 
       const drawTickLabel = (text, x, y) => {
-        const bounds = { x, y, width: ctx.measureText(text).width, height: 16 };
-        if (!axisLabels.some(label => rectanglesOverlap(bounds, label, 2))) {
+        const bounds = { x, y, width: ctx.measureText(text).width, height: 16 * renderTextScale };
+        if (!axisLabels.some(label => rectanglesOverlap(bounds, label, 2)) &&
+            (renderTextScale === 1 || (!drawnTickLabels.some(label => rectanglesOverlap(bounds, label, 3 * renderTextScale)) && x + bounds.width < width - 2))) {
           ctx.fillText(text, x, y);
+          drawnTickLabels.push(bounds);
         }
       };
 
       ctx.save();
       ctx.lineWidth = 1;
-      ctx.font = "12px system-ui, sans-serif";
+      ctx.font = graphFont("12px system-ui, sans-serif");
       ctx.textBaseline = "top";
 
       const firstX = Math.ceil(view.xMin / xStep) * xStep;
@@ -1860,7 +2015,7 @@
 
         ctx.fillStyle = "#667085";
         const labelY = view.yMin <= 0 && view.yMax >= 0 ? Math.min(height - 18, Math.max(4, yToPx(0) + 4)) : height - 18;
-        if (px > 4 && px < width - 25) drawTickLabel(formatNumber(x), px + 4, labelY);
+        if (px > 4 && px < width - 25 && Math.abs(Math.round(x / xStep)) % xStride === 0) drawTickLabel(formatNumber(x), px + 4, labelY);
       }
 
       const firstY = Math.ceil(view.yMin / yStep) * yStep;
@@ -1874,7 +2029,7 @@
 
         ctx.fillStyle = "#667085";
         const labelX = view.xMin <= 0 && view.xMax >= 0 ? Math.min(width - 70, Math.max(6, xToPx(0) + 6)) : 6;
-        if (py > 4 && py < height - 16 && !(Math.abs(y) < yStep * 1e-7 && view.xMin <= 0 && view.xMax >= 0)) drawTickLabel(formatNumber(y), labelX, py + 4);
+        if (py > 4 && py < height - 16 && Math.abs(Math.round(y / yStep)) % yStride === 0 && !(Math.abs(y) < yStep * 1e-7 && view.xMin <= 0 && view.xMax >= 0)) drawTickLabel(formatNumber(y), labelX, py + 4);
       }
 
       ctx.restore();
@@ -1951,7 +2106,7 @@
         let yMin = state ? state.yMin : -5, yMax = state ? state.yMax : 5;
         if (autoYCheckbox.checked || forceAutoScale || !state) ({ yMin, yMax } = safeAutoY(sample.finiteY));
         state = { evaluator, analysis, denominators: compiled.denominators || [], expression: functionInput.value,
-          xMin, xMax, yMin, yMax, specialPoints: [], visibleRoots: [], originInfo: null, rootCache: null };
+          xMin, xMax, yMin, yMax, specialPoints: [], visibleRoots: [], originInfo: null, rootCache: null, valueSamples: [] };
         drawCanvas();
         const note = specialPointMessage(state.specialPoints);
         const text = !analysis.domain.set.length ? 'Aucune valeur réelle : Dom(f) = ∅.' : !sample.finiteY.length ?
@@ -1990,50 +2145,270 @@
       } catch (error) { showMessage(error.message || 'L’ajustement automatique n’a pas été possible.', 'error'); }
     }
 
-    function updatePrintInfo() {
-      if (!state) {
-        printFunction.textContent = `f(x) = ${functionInput.value}`;
-        printRange.textContent = "";
-        printScale.textContent = scaleDescription();
-        printMessage.textContent = "Le graphique n’a pas encore pu être tracé.";
-        return;
+    // Rendu SVG autonome : on réutilise les opérations du traceur, pas une capture PNG.
+    // Les coordonnées sont celles de la vue courante ; aucune analyse ni mise à l’échelle
+    // automatique n’est relancée lors de l’impression.
+    class PrintVectorContext {
+      constructor(mmPerUnit) {
+        this.mmPerUnit = mmPerUnit;
+        this.measure = document.createElement('canvas').getContext('2d');
+        this.parts = []; this.defs = []; this.stack = []; this.path = [];
+        this.tx = 0; this.ty = 0; this.clips = []; this.dash = [];
+        this.fillStyle = '#000'; this.strokeStyle = '#000'; this.lineWidth = 1;
+        this.lineCap = 'butt'; this.lineJoin = 'miter'; this.globalAlpha = 1;
+        this.font = '12px system-ui, sans-serif'; this.textAlign = 'left'; this.textBaseline = 'alphabetic';
       }
+      number(v) { return Number(v.toFixed(5)); }
+      save() {
+        const copy = {};
+        for (const k of ['tx', 'ty', 'fillStyle', 'strokeStyle', 'lineWidth', 'lineCap', 'lineJoin',
+          'globalAlpha', 'font', 'textAlign', 'textBaseline']) copy[k] = this[k];
+        copy.clips = [...this.clips]; copy.dash = [...this.dash]; this.stack.push(copy);
+      }
+      restore() { const saved = this.stack.pop(); if (saved) Object.assign(this, saved); }
+      translate(x, y) { this.tx += x; this.ty += y; }
+      setLineDash(values) { this.dash = [...values]; }
+      beginPath() { this.path = []; }
+      moveTo(x, y) { this.path.push(`M${this.number(x + this.tx)} ${this.number(y + this.ty)}`); }
+      lineTo(x, y) { this.path.push(`L${this.number(x + this.tx)} ${this.number(y + this.ty)}`); }
+      quadraticCurveTo(cx, cy, x, y) {
+        this.path.push(`Q${this.number(cx + this.tx)} ${this.number(cy + this.ty)} ${this.number(x + this.tx)} ${this.number(y + this.ty)}`);
+      }
+      closePath() { this.path.push('Z'); }
+      rect(x, y, w, h) {
+        this.moveTo(x, y); this.lineTo(x + w, y); this.lineTo(x + w, y + h); this.lineTo(x, y + h); this.closePath();
+      }
+      arc(x, y, radius, start, end, anticlockwise = false) {
+        // Diamètre minimal des points et des trous pour rester visibles sur papier.
+        const r = Math.max(radius, .85 / this.mmPerUnit);
+        const n = v => this.number(v);
+        const cx = x + this.tx, cy = y + this.ty;
+        const sx = cx + r * Math.cos(start), sy = cy + r * Math.sin(start);
+        this.path.push(`${this.path.length ? 'L' : 'M'}${n(sx)} ${n(sy)}`);
+        if (Math.abs(end - start) >= 2 * Math.PI - 1e-8) {
+          const mx = cx - r * Math.cos(start), my = cy - r * Math.sin(start), sweep = anticlockwise ? 0 : 1;
+          this.path.push(`A${n(r)} ${n(r)} 0 1 ${sweep} ${n(mx)} ${n(my)} A${n(r)} ${n(r)} 0 1 ${sweep} ${n(sx)} ${n(sy)}`);
+        } else {
+          this.path.push(`A${n(r)} ${n(r)} 0 ${Math.abs(end - start) > Math.PI ? 1 : 0} ${anticlockwise ? 0 : 1} ${n(cx + r * Math.cos(end))} ${n(cy + r * Math.sin(end))}`);
+        }
+      }
+      clip() {
+        const id = 'papier-clip-' + this.defs.length;
+        this.defs.push(`<clipPath id="${id}" clipPathUnits="userSpaceOnUse"><path d="${this.path.join(' ')}"/></clipPath>`);
+        this.clips.push(id);
+      }
+      append(markup) {
+        for (const id of this.clips) markup = `<g clip-path="url(#${id})">${markup}</g>`;
+        this.parts.push(markup);
+      }
+      color(value, stroke = false) {
+        const color = String(value).toLowerCase();
+        const adjusted = {
+          '#eaecf0': '#c9d2df', '#e4e7ec': '#bfc9d6', '#e1e5ed': '#c6cfda',
+          '#98a2b3': '#65748a', '#667085': '#344054', '#2563eb': '#1d4ed8'
+        };
+        return stroke || color === '#667085' ? (adjusted[color] || color) : color;
+      }
+      strokeAttributes() {
+        const color = String(this.strokeStyle).toLowerCase();
+        const minimumMm = color === '#eaecf0' ? .16 : color === '#2563eb' ? .4 :
+          color === '#ffffff' || color === '#fff' ? 0 : this.lineWidth >= 4 ? .5 : .25;
+        const thickness = Math.max(this.lineWidth * (minimumMm ? 1.2 : 1), minimumMm / this.mmPerUnit);
+        const dash = this.dash.length ? ` stroke-dasharray="${this.dash.map(v => this.number(v)).join(' ')}"` : '';
+        return `stroke="${escapeHtml(this.color(this.strokeStyle, true))}" stroke-width="${this.number(thickness)}" stroke-linecap="${this.lineCap}" stroke-linejoin="${this.lineJoin}"${dash}`;
+      }
+      stroke() { this.append(`<path d="${this.path.join(' ')}" fill="none" ${this.strokeAttributes()} opacity="${this.globalAlpha}"/>`); }
+      fill() { this.append(`<path d="${this.path.join(' ')}" fill="${escapeHtml(this.color(this.fillStyle))}" stroke="none" opacity="${this.globalAlpha}"/>`); }
+      fillRect(x, y, w, h) {
+        this.append(`<rect x="${this.number(x + this.tx)}" y="${this.number(y + this.ty)}" width="${this.number(w)}" height="${this.number(h)}" fill="${escapeHtml(this.color(this.fillStyle))}" opacity="${this.globalAlpha}"/>`);
+      }
+      measureText(text) {
+        this.measure.font = this.font;
+        this.measure.textBaseline = this.textBaseline;
+        this.measure.textAlign = 'left';
+        return this.measure.measureText(String(text));
+      }
+      text(text, x, y, maxWidth, stroke) {
+        text = String(text);
+        const metrics = this.measureText(text);
+        this.measure.textBaseline = 'alphabetic';
+        const alphabetic = this.measure.measureText(text);
+        const baselineOffset = alphabetic.actualBoundingBoxAscent - metrics.actualBoundingBoxAscent;
+        const anchor = this.textAlign === 'center' ? 'middle' : this.textAlign === 'right' || this.textAlign === 'end' ? 'end' : 'start';
+        const fontSize = parseFloat(this.font.match(/([\d.]+)px/)?.[1] || '12');
+        const prefix = this.font.split(/[\d.]+px/)[0];
+        const weight = /\bbold\b/.test(prefix) ? '700' : (prefix.match(/\b[1-9]00\b/)?.[0] || '400');
+        const compress = Number.isFinite(maxWidth) && maxWidth > 0 && metrics.width > maxWidth
+          ? ` textLength="${this.number(maxWidth)}" lengthAdjust="spacingAndGlyphs"` : '';
+        const paint = stroke ? `fill="none" ${this.strokeAttributes()}` : `fill="${escapeHtml(this.color(this.fillStyle))}" stroke="none"`;
+        this.append(`<text x="${this.number(x + this.tx)}" y="${this.number(y + this.ty + baselineOffset)}" text-anchor="${anchor}" font-family="system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="${fontSize}" font-weight="${weight}" ${paint} opacity="${this.globalAlpha}"${compress}>${escapeHtml(text)}</text>`);
+      }
+      fillText(text, x, y, maxWidth) { this.text(text, x, y, maxWidth, false); }
+      strokeText(text, x, y, maxWidth) { this.text(text, x, y, maxWidth, true); }
+      serialize(w, h, description) {
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${this.number(w)} ${this.number(h)}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escapeHtml(description)}"><title>${escapeHtml(description)}</title><defs>${this.defs.join('')}</defs>${this.parts.join('')}</svg>`;
+      }
+    }
 
-      const note = specialPointMessage(state.specialPoints || []);
-      printFunction.textContent = `f(x) = ${state.expression}`;
-      printRange.textContent = `x = ${formatNumber(view.xMin)} … ${formatNumber(view.xMax)}, y = ${formatNumber(view.yMin)} … ${formatNumber(view.yMax)}`;
-      printScale.textContent = scaleDescription();
-      printMessage.textContent = note || "Aucun trou ni aucune asymptote verticale détectés dans la vue affichée.";
+    function graphFont(font) {
+      if (isPreparingPrint && !/\b(?:bold|[1-9]00)\b/.test(font.split(/[\d.]+px/)[0])) font = '500 ' + font;
+      return font.replace(/([\d.]+)px/, (_, n) => (Number(n) * renderTextScale).toFixed(4) + 'px');
+    }
+
+    function printContent(selector) {
+      const copy = document.querySelector(selector).cloneNode(true);
+      for (const el of [copy, ...copy.querySelectorAll('*')]) {
+        for (const attr of ['id', 'aria-live', 'aria-controls', 'aria-describedby', 'tabindex']) el.removeAttribute(attr);
+      }
+      return copy.innerHTML;
+    }
+
+    function buildPaperSheet() {
+      const check = (checked, label) => `<div class="paper-option"><span class="paper-check${checked ? ' checked' : ''}">${checked ? '✓' : ''}</span><span>${label}</span></div>`;
+      const note = equalScaleCheckbox.checked ? 'Une unité conserve la même longueur sur les deux axes.' : 'Chaque axe conserve son échelle actuelle.';
+      const sheet = document.getElementById('paperSheet');
+      sheet.innerHTML = `
+        <div class="paper-heading"><h1>Traceur de fonctions</h1><span>A4 paysage · Vue affichée · Rendu vectoriel</span></div>
+        <div class="paper-layout">
+          <aside class="paper-panel paper-controls-panel"><div class="paper-side-content">
+            <h2 class="sidebar-title">Saisie &amp; affichage</h2>
+            <div class="paper-controls">
+              <div class="paper-field-label">Fonction f(x)</div><div class="paper-value">${escapeHtml(state.expression)}</div>
+              <div class="paper-x-fields"><div><div class="paper-field-label">x minimum</div><div class="paper-value">${escapeHtml(formatNumber(state.xMin))}</div></div>
+                <div><div class="paper-field-label">x maximum</div><div class="paper-value">${escapeHtml(formatNumber(state.xMax))}</div></div></div>
+              <div class="paper-actions"><span class="paper-action primary">Tracer</span><span class="paper-action">Ajuster</span><span class="paper-action">Réinitialiser</span><span class="paper-action">Imprimer / PDF</span></div>
+            </div>
+            <div class="paper-options">
+              ${check(autoYCheckbox.checked, 'Ajuster automatiquement l’axe y')}
+              ${check(equalScaleCheckbox.checked, 'Même échelle pour x et y (1:1)')}
+              ${check(document.getElementById('studyCheckbox').checked, 'Marquer les points remarquables')}
+              <p class="paper-option-note">${note}</p>
+            </div>
+            <div class="paper-examples"><div class="paper-field-label">Exemples :</div><div class="paper-example-list">${EXAMPLE_FUNCTIONS.map(e => `<span class="paper-example">${escapeHtml(e)}</span>`).join('')}</div></div>
+            <div class="paper-help-title">▸ Aide à la saisie</div><div class="paper-help-title">▸ Notations et limites de l’analyse automatique</div>
+          </div></aside>
+          <section class="paper-panel paper-graph">
+            <div class="paper-function">f(x) = ${escapeHtml(state.expression)}</div>
+            <div class="paper-math-space"><div class="paper-math">
+              <aside class="paper-image">${printContent('.image-card')}</aside>
+              <div class="paper-vector"></div>
+              <div class="paper-table">${printContent('.value-table-card')}</div>
+              <div class="paper-legend">${printContent('.corner-card')}</div>
+              <div class="paper-domain">${printContent('.domain-card')}</div>
+            </div></div>
+          </section>
+          <aside class="paper-panel paper-learning-panel"><div class="paper-side-content">${printContent('.learning-sidebar')}</div></aside>
+        </div>
+        <div class="paper-footnote">Cadrage et proportions du graphique conservés. Les symboles −∞ et +∞ indiquent un prolongement, pas une graduation.</div>`;
+      sheet.classList.add('paper-ready');
+      return sheet;
     }
 
     function preparePrint() {
-      updatePrintInfo();
-      if (!state) return;
-
-
-      const printWidthMm = Math.min(157, 145 * canvasFullWidth / canvasFullHeight);
-      document.querySelector('.math-frame').style.setProperty('--print-plot-width', printWidthMm + 'mm');
-      printGraphImage.src = canvas.toDataURL("image/png");
-      printGraphImage.alt = `Graphique de f(x) = ${state.expression} avec l’abscisse x, l’ordonnée y, Dom(f), Im(f) et les points remarquables`;
-    }
-
-    function inputsMatchCurrentGraph() {
-      if (!state || functionInput.value !== state.expression) return false;
-      const matches = (input, value) =>
-        input.value.trim() === formatNumber(value) || parseInputNumber(input.value) === value;
+      if (!state || isPreparingPrint) return;
+      isPreparingPrint = true;
+      const previous = { ctx, view, plotLeft, plotBottom, canvasFullWidth, canvasFullHeight,
+        renderTextScale, annotationBoxes };
       try {
-        return matches(xMinInput, state.xMin) && matches(xMaxInput, state.xMax);
-      } catch {
-        return false;
+        // Utiliser exclusivement les bornes qui ont servi au dernier dessin à l’écran.
+        const screenView = { ...view };
+        const sheet = buildPaperSheet();
+        const space = sheet.querySelector('.paper-math-space');
+        const math = sheet.querySelector('.paper-math');
+        const figure = sheet.querySelector('.paper-vector');
+        const image = sheet.querySelector('.paper-image');
+        const pxPerMm = 96 / 25.4;
+        const maxWidthMm = Math.max(25, (space.clientWidth - image.getBoundingClientRect().width) / pxPerMm - .5);
+        let chosenWidthMm = maxWidthMm, chosenHeightMm = 100;
+        let previousScale = 1;
+        // Adapter uniquement les marges, les lettres et la taille physique du support.
+        // La zone (width, height) et son rapport d’aspect ne changent jamais.
+        for (let pass = 0; pass < 6; pass++) {
+          const oldMmPerUnit = chosenWidthMm / (width + Math.max(previous.plotLeft, 64 * previousScale));
+          renderTextScale = Math.max(1, (8.5 * 25.4 / 72) / (11 * oldMmPerUnit));
+          plotLeft = Math.max(previous.plotLeft, 64 * renderTextScale);
+          plotBottom = Math.max(previous.plotBottom, 60 * renderTextScale);
+          canvasFullWidth = width + plotLeft;
+          canvasFullHeight = height + plotBottom;
+          math.style.setProperty('--paper-canvas-width', chosenWidthMm + 'mm');
+          const bottomPx = Math.max(
+            sheet.querySelector('.paper-domain').getBoundingClientRect().height + sheet.querySelector('.paper-table').getBoundingClientRect().height,
+            sheet.querySelector('.paper-legend').getBoundingClientRect().height
+          );
+          const maxHeightMm = Math.max(30, (space.clientHeight - bottomPx) / pxPerMm - .5);
+          const fit = Math.min(maxWidthMm / canvasFullWidth, maxHeightMm / canvasFullHeight);
+          chosenWidthMm = canvasFullWidth * fit;
+          chosenHeightMm = canvasFullHeight * fit;
+          previousScale = renderTextScale;
+        }
+        math.style.setProperty('--paper-canvas-width', chosenWidthMm + 'mm');
+        math.style.setProperty('--paper-canvas-height', chosenHeightMm + 'mm');
+        // La marge imprimée diffère de celle de l'écran (lettres plus grandes).
+        // Recalculer ici le décalage de la table, sans recalculer les valeurs ni changer la vue.
+        updateValueTable(sheet.querySelector('.paper-table'), true);
+        const vector = new PrintVectorContext(chosenWidthMm / canvasFullWidth);
+        ctx = vector;
+        view = screenView;
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvasFullWidth, canvasFullHeight);
+        annotationBoxes = axisLabelLayout().labels.map(x => ({ ...x }));
+        const reservePoint = (x, y) => {
+          const px = xToPx(x), py = yToPx(y), radius = 8 * renderTextScale;
+          if (px < 0 || px > width || py < 0 || py > height) return;
+          annotationBoxes.push({ x: px - radius, y: py - radius, width: radius * 2, height: radius * 2 });
+        };
+        if (document.getElementById('studyCheckbox').checked) {
+          for (const x of state.visibleRoots) reservePoint(x, 0);
+          if (state.originInfo.defined) reservePoint(0, state.originInfo.y);
+        }
+        for (const point of state.specialPoints) if (point.type === 'hole') reservePoint(point.x, point.y);
+        ctx.save(); ctx.translate(plotLeft, 0);
+        ctx.beginPath(); ctx.rect(0, 0, width, height); ctx.clip();
+        drawGrid(); drawFunctionLine(); drawSpecialPoints(); drawValueSamplePoints(); drawStudyPoints(); drawAxisLabels();
+        drawProbeReading(probeReading);
+        ctx.restore(); drawProjectionBands();
+        figure.innerHTML = vector.serialize(canvasFullWidth, canvasFullHeight,
+          'Graphique de f(x) = ' + state.expression + '. Cadrage identique à la vue affichée.');
+        sheet.dataset.view = JSON.stringify(screenView);
+        sheet.dataset.probe = probeReading ? JSON.stringify({ x: probeReading.x, y: probeReading.y, frozen: probeFrozen }) : '';
+        sheet.dataset.rendering = 'svg-vectoriel';
+        sheet.dataset.textScale = String(renderTextScale);
+        sheet.dataset.plotGeometry = JSON.stringify({ plotLeft, width, height, canvasFullWidth, canvasFullHeight });
+        // En cas de texte exceptionnellement long, faire tenir chaque panneau sans le couper.
+        for (const panel of sheet.querySelectorAll('.paper-controls-panel, .paper-learning-panel')) {
+          const content = panel.firstElementChild;
+          const available = panel.clientHeight;
+          if (content.scrollHeight > available) {
+            const factor = Math.max(.35, available / content.scrollHeight);
+            content.style.transformOrigin = 'top left';
+            content.style.transform = `scale(${factor})`;
+            content.style.width = (100 / factor) + '%';
+          }
+        }
+      } catch (error) {
+        console.error('Préparation de l’impression impossible :', error);
+        throw error;
+      } finally {
+        ctx = previous.ctx; view = previous.view;
+        plotLeft = previous.plotLeft; plotBottom = previous.plotBottom;
+        canvasFullWidth = previous.canvasFullWidth; canvasFullHeight = previous.canvasFullHeight;
+        renderTextScale = previous.renderTextScale; annotationBoxes = previous.annotationBoxes;
+        isPreparingPrint = false;
       }
     }
 
     function printGraph() {
-
-      if (!inputsMatchCurrentGraph() && !drawFunction(false)) return;
-      if (!state) return;
-      preparePrint();
-      requestAnimationFrame(() => window.print());
+      // Une saisie non validée ne doit pas remplacer la courbe actuellement affichée.
+      if (!state && !drawFunction(false)) return;
+      try {
+        if (pendingGestureDraw) {
+          cancelAnimationFrame(pendingGestureDraw); pendingGestureDraw = 0;
+          syncXInputs(); drawCanvas();
+        }
+        preparePrint();
+        requestAnimationFrame(() => window.print());
+      } catch (error) {
+        showMessage('L’impression n’a pas pu être préparée. Réessayez après avoir tracé la fonction.', 'error');
+      }
     }
 
     function createExampleButtons() {
@@ -2058,7 +2433,7 @@
     const STUDY_COLORS = { domain: '#047857', image: '#7c3aed', root: '#047857', origin: '#b45309', excluded: '#b42318' };
     let canvasFullWidth = 0, canvasFullHeight = 0;
     let plotLeft = 78;
-    const plotBottom = 60;
+    let plotBottom = 60;
     let annotationBoxes = [];
 
     function mathEquality(name, formatted) {
@@ -2221,9 +2596,9 @@
     }
     function annotation(lines, px, py, color, preferAbove = true) {
       ctx.save();
-      const fontSize = width < 420 ? 10.5 : 12;
+      const fontSize = (width < 420 ? 10.5 : 12) * renderTextScale;
       ctx.font = '600 ' + fontSize + 'px system-ui, sans-serif';
-      const pad = 7, lineHeight = fontSize + 4;
+      const pad = 7 * renderTextScale, lineHeight = fontSize + 4 * renderTextScale;
       const w = Math.min(width - 12, Math.max(...lines.map(t => ctx.measureText(t).width)) + 2 * pad);
       const h = lines.length * lineHeight + pad * 2 - 3;
       const top = py - h - 14, bottom = py + 18;
@@ -2262,6 +2637,233 @@
       } else ctx.arc(x, y, 5, 0, 2 * Math.PI);
       ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.7; ctx.stroke(); ctx.restore();
     }
+
+    function computeValueTableSamples() {
+      if (!state || !view) return [];
+      const { xStep } = getGridSteps();
+      const range = view.xMax - view.xMin;
+      const maxColumns = width < 360 ? 5 : width < 520 ? 6 : width < 720 ? 8 : width < 980 ? 10 : 12;
+      let subdivision = 1;
+      for (const option of [4, 2, 1]) {
+        const step = xStep / option;
+        const first = Math.ceil(view.xMin / step) * step;
+        const count = Math.max(0, Math.floor((view.xMax - first) / step + 1 + 1e-9));
+        if (count && count <= maxColumns) { subdivision = option; break; }
+      }
+      const step = xStep / subdivision;
+      const first = Math.ceil(view.xMin / step) * step;
+      const xs = [];
+      for (let x = first; x <= view.xMax + step * 1e-7; x += step) xs.push(Number(x.toPrecision(14)));
+      // Même zone étiquetable que l'axe x : les graduations coupées au bord n'ajoutent pas de colonne tronquée.
+      const values = uniqueNumbers(xs).filter(x => xToPx(x) > 4 && xToPx(x) < width - 25);
+      return values.map(x => {
+        const allowed = domainAllows(state.analysis.domain, x, true);
+        const y = allowed ? evaluateFinite(state.evaluator, x) : NaN;
+        const defined = Number.isFinite(y);
+        return { x, y, defined, formatted: formatTableResult(state.analysis.ast, x, y, defined) };
+      });
+    }
+
+    function drawValueSamplePoints() {
+      if (!state?.valueSamples?.length) return;
+      ctx.save();
+      ctx.fillStyle = '#64748b';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(1, 1.1 * renderTextScale);
+      ctx.globalAlpha = isPreparingPrint ? 0.9 : 0.7;
+      const radius = Math.max(2.4, 2.8 * renderTextScale);
+      for (const sample of state.valueSamples) {
+        if (!sample.defined) continue;
+        const px = xToPx(sample.x), py = yToPx(sample.y);
+        if (px < 0 || px > width || py < 0 || py > height) continue;
+        ctx.beginPath();
+        ctx.arc(px, py, radius, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Calcul exact borné aux opérations reconnues. Une proximité numérique ne justifie jamais « = ».
+    // Les décimales saisies sont traitées comme des fractions, avec BigInt, pour éviter 0,1 + 0,2 ≠ 0,3.
+    function tableFraction(n, d = 1n) {
+      if (d === 0n) return null;
+      if (d < 0n) { n = -n; d = -d; }
+      if (n.toString().length > 640 || d.toString().length > 640) return null;
+      let a = n < 0n ? -n : n, b = d;
+      while (b) { const r = a % b; a = b; b = r; }
+      return { n: n / a, d: d / a };
+    }
+    function tableDecimalFraction(text) {
+      const m = String(text).match(/^([+-]?)(\d*)(?:\.(\d*))?(?:e([+-]?\d+))?$/i);
+      if (!m || !(m[2] || m[3])) return null;
+      const decimals = m[3] || '', exponent = Number(m[4] || 0) - decimals.length;
+      if (Math.abs(exponent) > 400 || (m[2] + decimals).length > 600) return null;
+      const n = BigInt((m[2] || '0') + decimals) * (m[1] === '-' ? -1n : 1n);
+      return exponent >= 0 ? tableFraction(n * 10n ** BigInt(exponent)) : tableFraction(n, 10n ** BigInt(-exponent));
+    }
+    function tableFractionOperation(op, a, b) {
+      if (!a || !b) return null;
+      if (op === '+') return tableFraction(a.n * b.d + b.n * a.d, a.d * b.d);
+      if (op === '-') return tableFraction(a.n * b.d - b.n * a.d, a.d * b.d);
+      if (op === '*') return tableFraction(a.n * b.n, a.d * b.d);
+      if (op === '/') return tableFraction(a.n * b.d, a.d * b.n);
+      return null;
+    }
+    function tablePerfectRoot(n, degree = 2) {
+      if (degree < 1 || degree > 32 || (n < 0n && degree % 2 === 0)) return null;
+      const sign = n < 0n ? -1n : 1n; n *= sign;
+      if (n < 2n || degree === 1) return sign * n;
+      let lo = 0n, hi = 1n << BigInt(Math.ceil(n.toString(2).length / degree));
+      const power = BigInt(degree);
+      while (lo <= hi) {
+        const mid = (lo + hi) / 2n, v = mid ** power;
+        if (v === n) return mid * sign;
+        if (v < n) lo = mid + 1n; else hi = mid - 1n;
+      }
+      return null;
+    }
+    function exactTableFraction(node, x, depth = 0) {
+      if (!node || depth > 64) return null;
+      const recurse = n => exactTableFraction(n, x, depth + 1);
+      if (node.kind === 'number') return node.symbol ? null : tableDecimalFraction(node.raw ?? String(node.value));
+      if (node.kind === 'variable') return tableDecimalFraction(String(x));
+      if (node.kind === 'negate') { const a = recurse(node.arg); return a ? tableFraction(-a.n, a.d) : null; }
+      if (node.kind === 'binary') {
+        const a = recurse(node.left), b = recurse(node.right);
+        if (!a || !b) return null;
+        if (node.op !== '^') return tableFractionOperation(node.op, a, b);
+        if ((a.n === 0n && b.n <= 0n) || b.n > 128n || b.n < -128n || b.d > 32n) return null;
+        const n = tablePerfectRoot(a.n, Number(b.d)), d = tablePerfectRoot(a.d, Number(b.d));
+        if (n === null || d === null || (n === 0n && b.n < 0n)) return null;
+        const k = b.n < 0n ? -b.n : b.n;
+        // Éviter de construire un entier démesuré pour une saisie extrême.
+        if ((String(n).length + String(d).length) * Number(k) > 640) return null;
+        return b.n >= 0n ? tableFraction(n ** k, d ** k) : tableFraction(d ** k, n ** k);
+      }
+      if (node.kind !== 'call') return null;
+      const a = recurse(node.arg);
+      if (node.name === 'ln' && node.arg.symbol === 'e') return tableFraction(1n);
+      if (!a) {
+        // Cas exacts usuels : multiples de π/2 pour sin/cos, de π/4 pour tan.
+        if (['sin', 'cos', 'tan'].includes(node.name)) {
+          const coefficient = tablePiCoefficient(node.arg, x, depth + 1);
+          if (coefficient) {
+            const scaled = coefficient.n * (node.name === 'tan' ? 4n : 2n);
+            if (scaled % coefficient.d === 0n) {
+              const k = Number(((scaled / coefficient.d) % 4n + 4n) % 4n);
+              const v = node.name === 'sin' ? [0, 1, 0, -1][k] : node.name === 'cos' ? [1, 0, -1, 0][k] : [0, 1, null, -1][k];
+              if (v !== null) return tableFraction(BigInt(v));
+            }
+          }
+        }
+        return null;
+      }
+      if (node.name === 'abs') return tableFraction(a.n < 0n ? -a.n : a.n, a.d);
+      if (node.name === 'sqrt') {
+        const n = tablePerfectRoot(a.n), d = tablePerfectRoot(a.d);
+        return n === null || d === null ? null : tableFraction(n, d);
+      }
+      if (a.n === 0n) {
+        if (['sin', 'tan', 'asin', 'atan'].includes(node.name)) return tableFraction(0n);
+        if (['cos', 'exp'].includes(node.name)) return tableFraction(1n);
+      }
+      if (a.n === a.d && ['ln', 'log', 'acos'].includes(node.name)) return tableFraction(0n);
+      return null;
+    }
+    function tablePiCoefficient(node, x, depth = 0) {
+      if (!node || depth > 64) return null;
+      if (node.symbol === 'pi') return tableFraction(1n);
+      if (node.kind === 'negate') {
+        const c = tablePiCoefficient(node.arg, x, depth + 1); return c ? tableFraction(-c.n, c.d) : null;
+      }
+      if (node.kind !== 'binary') return null;
+      const a = tablePiCoefficient(node.left, x, depth + 1), b = tablePiCoefficient(node.right, x, depth + 1);
+      if (node.op === '+' || node.op === '-') return tableFractionOperation(node.op, a, b);
+      if (node.op === '*') return a ? tableFractionOperation('*', a, exactTableFraction(node.right, x, depth + 1)) :
+        b ? tableFractionOperation('*', exactTableFraction(node.left, x, depth + 1), b) : null;
+      if (node.op === '/') return tableFractionOperation('/', a, exactTableFraction(node.right, x, depth + 1));
+      return null;
+    }
+    function tableExactDecimal(fraction) {
+      if (!fraction) return null;
+      if (fraction.n === 0n) return '0';
+      let rest = fraction.d, twos = 0, fives = 0;
+      while (rest % 2n === 0n) { rest /= 2n; twos++; }
+      while (rest % 5n === 0n) { rest /= 5n; fives++; }
+      if (rest !== 1n) return null; // Développement décimal illimité : afficher une approximation.
+      const places = Math.max(twos, fives);
+      if (places > 400) return null;
+      const absolute = fraction.n < 0n ? -fraction.n : fraction.n;
+      const digits = (absolute * (10n ** BigInt(places) / fraction.d)).toString();
+      const sign = fraction.n < 0n ? '−' : '';
+      const padded = digits.padStart(places + 1, '0');
+      let plain = places ? padded.slice(0, -places) + ',' + padded.slice(-places) : padded;
+      if (places) plain = plain.replace(/0+$/, '').replace(/,$/, '');
+      if (sign.length + plain.length <= 9) return sign + plain;
+      // Notation scientifique exacte : supprimer seulement les zéros terminaux.
+      const significant = digits.replace(/0+$/, ''), exponent = digits.length - places - 1;
+      if (significant.length <= 4) return sign + significant[0] + (significant.length > 1 ? ',' + significant.slice(1) : '') + 'e' + String(exponent).replace('-', '−');
+      return null; // Un nombre exact trop long est lui aussi affiché comme une valeur arrondie.
+    }
+    function formatTableResult(ast, x, y, defined) {
+      if (!defined) return { sign: '', number: 'ND', exact: false, text: 'ND' };
+      let fraction = null;
+      try { fraction = exactTableFraction(ast, x); } catch { /* L'analyse numérique reste disponible. */ }
+      const exact = tableExactDecimal(fraction);
+      if (exact !== null) return { sign: '=', number: exact, exact: true, text: '= ' + exact };
+      // toPrecision, et non toFixed : toujours trois chiffres significatifs, même près de zéro.
+      const rounded = y.toPrecision(3).replace('e+', 'e').replace(/-/g, '−').replace('.', ',') + '…';
+      return { sign: '≈', number: rounded, exact: false, text: '≈ ' + rounded };
+    }
+
+    function fitValueTableText(target, printing = false) {
+      for (const cell of target.querySelectorAll('.value-table-cell')) {
+        const text = cell.querySelector('.value-table-text');
+        if (!text) continue;
+        const base = parseFloat(getComputedStyle(cell).fontSize);
+        text.style.fontSize = base + 'px';
+        text.classList.remove('stacked');
+        // L'espace entre les abscisses est la contrainte, pas la largeur d'une cellule tronquée au bord.
+        const available = Math.max(16, Number(cell.dataset.slot) * cell.parentElement.clientWidth - 3);
+        if (text.getBoundingClientRect().width > available && text.querySelector('.value-sign')) text.classList.add('stacked');
+        const natural = text.getBoundingClientRect().width;
+        if (natural > available) text.style.fontSize = Math.max(printing ? 9.3 : 10, base * available / natural).toFixed(3) + 'px';
+      }
+    }
+
+    function updateValueTable(target = valueTableCard, printing = false) {
+      if (!target) return;
+      const box = target.querySelector('.value-table-box');
+      const grid = target.querySelector('.value-table-grid');
+      const note = target.querySelector('.value-table-note');
+      if (!box || !grid || !note) return;
+      if (!state || !view || !state.valueSamples?.length) { grid.innerHTML = ''; return; }
+      // Même origine physique et même largeur utile que le graphique qui vient d'être rendu.
+      box.style.setProperty('--table-plot-left', (100 * plotLeft / canvasFullWidth).toFixed(9) + '%');
+      box.dataset.plotLeft = String(plotLeft);
+      box.dataset.fullWidth = String(canvasFullWidth);
+      const samples = state.valueSamples, range = view.xMax - view.xMin;
+      const parts = ['<div class="value-row-divider"></div>'];
+      for (let i = 0; i < samples.length; i++) {
+        const current = samples[i];
+        const spacing = samples.length > 1 ? (i ? current.x - samples[i - 1].x : samples[1].x - current.x) : range;
+        const leftValue = i ? (samples[i - 1].x + current.x) / 2 : view.xMin;
+        const rightValue = i < samples.length - 1 ? (current.x + samples[i + 1].x) / 2 : view.xMax;
+        const left = 100 * (leftValue - view.xMin) / range, w = 100 * (rightValue - leftValue) / range;
+        const anchor = 100 * (current.x - leftValue) / (rightValue - leftValue);
+        const xf = mathNumber(current.x), xText = (xf.approx ? '≈ ' : '') + xf.text;
+        const f = current.formatted || formatTableResult(state.analysis.ast, current.x, current.y, current.defined);
+        const attributes = `data-x="${current.x}" data-slot="${spacing / range}" style="left:${left}%;width:${w}%;"`;
+        parts.push(`<div class="value-table-cell row-x" ${attributes}><span class="value-table-text" style="left:${anchor}%">${escapeHtml(xText)}</span></div>`);
+        parts.push(`<div class="value-table-cell row-y${current.defined ? '' : ' value-undefined'}" ${attributes} title="${escapeHtml('f(' + xText + ') ' + f.text)}"><span class="value-table-text" style="left:${anchor}%">${f.sign ? '<span class="value-sign">' + f.sign + '</span>' : ''}<span class="value-number">${escapeHtml(f.number)}</span></span></div>`);
+      }
+      parts.push('<div class="value-table-end"></div>');
+      const html = parts.join('');
+      if (grid.innerHTML !== html) grid.innerHTML = html;
+      note.textContent = '= : valeur exacte · ≈ : arrondi à 3 chiffres significatifs… · ND : non défini. Les points gris suivent le tableau.';
+      fitValueTableText(target, printing);
+    }
     function drawStudyPoints() {
       if (!document.getElementById('studyCheckbox').checked) return;
       const origin = state.originInfo;
@@ -2299,7 +2901,7 @@
     function projectionGeometry(vertical) {
       const lo = vertical ? view.yMin : view.xMin;
       const hi = vertical ? view.yMax : view.xMax;
-      const fixed = vertical ? 21 : height + 25;
+      const fixed = vertical ? 21 * renderTextScale : height + 25 * renderTextScale;
       const map = v => vertical ? yToPx(v) : plotLeft + xToPx(v);
       const point = v => vertical ? { x: fixed, y: map(v) } : { x: map(v), y: fixed };
       return { lo, hi, fixed, map, point };
@@ -2309,11 +2911,12 @@
       if (!Number.isFinite(step) || step <= 0) return;
       const { lo, hi, fixed, map } = projectionGeometry(vertical);
       const first = Math.ceil(lo / step), last = Math.floor(hi / step);
+      const stride = printTickStride(step, vertical);
       if (!Number.isFinite(first) || !Number.isFinite(last) || last - first > 2000) return;
       const accepted = [];
       ctx.save();
       ctx.strokeStyle = '#98a2b3'; ctx.fillStyle = '#667085'; ctx.lineWidth = 1;
-      ctx.font = '11px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      ctx.font = graphFont('11px system-ui, sans-serif'); ctx.textBaseline = 'middle';
       for (let k = first; k <= last; k++) {
         const value = k * step, pos = map(value);
         if (vertical ? (pos < 6 || pos > height - 6) : (pos < plotLeft + 6 || pos > canvasFullWidth - 6)) continue;
@@ -2321,12 +2924,13 @@
         if (vertical) { ctx.moveTo(fixed - 6, pos); ctx.lineTo(fixed + 6, pos); }
         else { ctx.moveTo(pos, fixed - 6); ctx.lineTo(pos, fixed + 6); }
         ctx.stroke();
+        if (Math.abs(k) % stride !== 0) continue;
         const text = formatNumber(value);
         const maxWidth = vertical ? plotLeft - fixed - 14 : Math.max(30, width - 8);
         const textWidth = Math.min(maxWidth, ctx.measureText(text).width);
         const x = vertical ? fixed + 10 : pos - textWidth / 2;
-        const y = vertical ? pos : fixed + 17;
-        const box = { x: x - 2, y: y - 7, width: textWidth + 4, height: 14 };
+        const y = vertical ? pos : fixed + 17 * renderTextScale;
+        const box = { x: x - 2, y: y - 7 * renderTextScale, width: textWidth + 4, height: 14 * renderTextScale };
         if (box.x < (vertical ? 0 : plotLeft) || box.x + box.width > (vertical ? plotLeft : canvasFullWidth)) continue;
         if ([...reservedLabels, ...accepted].some(r => rectanglesOverlap(box, r, 3))) continue;
         ctx.textAlign = 'left'; ctx.fillText(text, x, y, maxWidth);
@@ -2362,32 +2966,32 @@
       else ctx.rect(plotLeft, height, width, plotBottom);
       ctx.clip();
       const addLabel = (text, x, y, align = 'left', infinity = false, labelColor = color) => {
-        const font = (infinity ? '700 14px' : '600 11px') + ' system-ui, sans-serif';
+        const font = graphFont((infinity ? '700 14px' : '600 11px') + ' system-ui, sans-serif');
         ctx.font = font;
         const maxWidth = vertical ? plotLeft - fixed - 14 : Math.max(30, width - 8);
         const w = Math.min(maxWidth, ctx.measureText(text).width);
         let left = align === 'right' ? x - w : align === 'center' ? x - w / 2 : x;
         left = Math.max(vertical ? fixed + 9 : plotLeft + 3, Math.min((vertical ? plotLeft : canvasFullWidth) - w - 3, left));
-        const label = { text, x: left - 2, y: y - (infinity ? 9 : 7), width: w + 4,
-          height: infinity ? 18 : 14, textX: left, textY: y, font, maxWidth, color: labelColor, infinity };
+        const label = { text, x: left - 2, y: y - (infinity ? 9 : 7) * renderTextScale, width: w + 4,
+          height: (infinity ? 18 : 14) * renderTextScale, textX: left, textY: y, font, maxWidth, color: labelColor, infinity };
         if (!labels.some(r => rectanglesOverlap(label, r, 2))) labels.push(label);
       };
       // Réserver une place aux indications −∞ et +∞, près des flèches correspondantes.
       for (const arrow of arrows) if (arrow.unbounded) {
         const signText = arrow.direction < 0 ? '−∞' : '+∞';
-        if (vertical) addLabel(signText, fixed + 10, arrow.direction > 0 ? 11 : height - 11, 'left', true);
-        else addLabel(signText, arrow.direction < 0 ? plotLeft + 7 : canvasFullWidth - 7, height + 10,
+        if (vertical) addLabel(signText, fixed + 10, arrow.direction > 0 ? 11 * renderTextScale : height - 11 * renderTextScale, 'left', true);
+        else addLabel(signText, arrow.direction < 0 ? plotLeft + 7 : canvasFullWidth - 7, height + 10 * renderTextScale,
           arrow.direction < 0 ? 'left' : 'right', true);
       }
       for (const mark of markers.slice(0, 12)) {
         const p = point(mark.v), f = mathNumber(mark.v);
         addLabel((f.approx ? '≈' : '') + f.text, vertical ? fixed + 10 : p.x,
-          vertical ? Math.max(8, Math.min(height - 8, p.y)) : fixed + 17, vertical ? 'left' : 'center');
+          vertical ? Math.max(8 * renderTextScale, Math.min(height - 8 * renderTextScale, p.y)) : fixed + 17 * renderTextScale, vertical ? 'left' : 'center');
       }
       if (set === null || !set.length) {
         const p = point((lo + hi) / 2);
         addLabel(set === null ? '?' : '∅', vertical ? fixed + 10 : p.x,
-          vertical ? p.y : fixed + 17, vertical ? 'left' : 'center', false, set === null ? '#667085' : color);
+          vertical ? p.y : fixed + 17 * renderTextScale, vertical ? 'left' : 'center', false, set === null ? '#667085' : color);
       }
       ctx.strokeStyle = '#e1e5ed'; ctx.lineWidth = 3; line(lo, hi);
       drawProjectionScale(vertical, step, labels);
@@ -2485,6 +3089,352 @@
       });
     }
 
+    // Point P : lecture locale en pixels, indépendante de la densité du tracé.
+    // L'accrochage résout f(x) = y pour une graduation y ; il n'arrondit jamais
+    // séparément les deux coordonnées (ce qui ferait quitter la courbe à P).
+    const PROBE_COLOR = '#be185d';
+    const PROBE_RADIUS = 18;
+    const PROBE_SNAP_PIXELS = 7;
+    const probeCanvas = document.getElementById('probeCanvas');
+    const releaseProbeButton = document.getElementById('releaseProbeButton');
+    const probeReadingText = document.getElementById('probeReadingText');
+    let probeReading = null;
+    let probeFrozen = false;
+    let probePointer = null;
+    let probeExpression = null;
+    let probeGestureStart = null;
+    let pendingProbeFrame = 0;
+
+    function probeCandidate(x) {
+      if (!state || !Number.isFinite(x) || !domainAllows(state.analysis.domain, x)) return null;
+      const y = evaluateFinite(state.evaluator, x, 1e12);
+      if (!Number.isFinite(y)) return null;
+      return { x: Object.is(x, -0) ? 0 : x, y, px: xToPx(x), py: yToPx(y) };
+    }
+
+    function probeSameBranch(a, b) {
+      const lo = Math.min(a, b), hi = Math.max(a, b), domain = state.analysis.domain;
+      if (!domainAllows(domain, a) || !domainAllows(domain, b)) return false;
+      // Ne pas traverser un trou, une borne interdite ou une asymptote connue.
+      if (!domain.set.some(i => lo >= i.lo && hi <= i.hi)) return false;
+      if (state.specialPoints.some(p => p.x > lo && p.x < hi)) return false;
+      for (const pattern of domain.periodic) {
+        const k = Math.ceil((lo - pattern.offset) / pattern.period);
+        const pole = pattern.offset + k * pattern.period;
+        if (pole > lo && pole < hi) return false;
+      }
+      return true;
+    }
+
+    function probeMinimize(a, b, objective, steps = 32) {
+      const ratio = (Math.sqrt(5) - 1) / 2;
+      let c = b - ratio * (b - a), d = a + ratio * (b - a);
+      let fc = objective(c), fd = objective(d);
+      for (let i = 0; i < steps; i++) {
+        if (fc < fd) { b = d; d = c; fd = fc; c = b - ratio * (b - a); fc = objective(c); }
+        else { a = c; c = d; fc = fd; d = a + ratio * (b - a); fd = objective(d); }
+        if (a === b || c === d) break;
+      }
+      return fc < fd ? c : d;
+    }
+
+    function nearestProbePoint(mx, my, radius) {
+      // Le cercle d'un trou doit rester lisible et ne jamais devenir un point P.
+      if (state.specialPoints.some(p => p.type === 'hole' &&
+          Math.hypot(xToPx(p.x) - mx, yToPx(p.y) - my) < 7)) return null;
+      const first = Math.max(0, mx - radius), last = Math.min(width, mx + radius);
+      if (first > last) return null;
+      const score = p => p ? (p.px - mx) ** 2 + (p.py - my) ** 2 : Infinity;
+      const at = px => probeCandidate(pxToX(px));
+      let best = null, bestScore = Infinity;
+      const consider = p => {
+        const s = score(p);
+        if (s < bestScore) { bestScore = s; best = p; }
+      };
+      consider(at(mx));
+      const samples = [], count = Math.max(12, Math.ceil((last - first) / .75));
+      for (let i = 0; i <= count; i++) {
+        const px = first + (last - first) * i / count, p = at(px);
+        samples.push({ px, p, score: score(p) }); consider(p);
+      }
+      // Raffinement des minima locaux : utile aussi pour une courbe presque verticale.
+      for (let i = 0; i < samples.length; i++) {
+        const current = samples[i];
+        if (!current.p) continue;
+        if ((i === 0 || current.score <= samples[i - 1].score) &&
+            (i === samples.length - 1 || current.score <= samples[i + 1].score)) {
+          const a = samples[Math.max(0, i - 1)].px, b = samples[Math.min(count, i + 1)].px;
+          consider(at(probeMinimize(a, b, px => score(at(px)))));
+        }
+        if (i === 0) continue;
+        const prev = samples[i - 1];
+        if (!prev.p || !probeSameBranch(prev.p.x, current.p.x)) continue;
+        const dx = current.p.px - prev.p.px, dy = current.p.py - prev.p.py;
+        const length2 = dx * dx + dy * dy;
+        if (!Number.isFinite(length2) || length2 === 0) continue;
+        const t = Math.max(0, Math.min(1, ((mx - prev.p.px) * dx + (my - prev.p.py) * dy) / length2));
+        const projectedX = prev.p.px + t * dx, projectedY = prev.p.py + t * dy;
+        if ((projectedX - mx) ** 2 + (projectedY - my) ** 2 <= radius ** 2) {
+          // L'interpolation n'est qu'une amorce : P est toujours réévalué sur f.
+          consider(at(projectedX));
+          if (Math.abs(dy) > 4) consider(at(probeMinimize(prev.p.px, current.p.px, px => score(at(px)))));
+        }
+      }
+      // Bornes incluses et racines déjà connues : garder les extrémités exactes.
+      for (const x of [...state.visibleRoots, ...state.analysis.domain.set.flatMap(i => [i.lo, i.hi])]) {
+        if (Number.isFinite(x) && xToPx(x) >= first && xToPx(x) <= last) consider(probeCandidate(x));
+      }
+      return best && bestScore <= radius ** 2 && best.py >= 0 && best.py <= height ? best : null;
+    }
+
+    function probeLevelPoints(base, targetY, maxShift) {
+      const left = Math.max(0, base.px - maxShift), right = Math.min(width, base.px + maxShift);
+      const results = [];
+      const add = (x, fromBracket = false, scale = 0) => {
+        const p = probeCandidate(x);
+        if (!p || !probeSameBranch(base.x, x)) return;
+        const residual = Math.abs(p.y - targetY);
+        // À y = 0, une très petite valeur non nulle n'est PAS une racine.
+        const tolerance = Math.max(Number.MIN_VALUE, 4e-13 * Math.max(Math.abs(targetY), scale));
+        if (residual > tolerance || Math.abs(p.py - yToPx(targetY)) > .0001) return;
+        if (!fromBracket && p.y !== targetY && scale === 0) return;
+        if (Math.hypot(p.px - base.px, p.py - base.py) > maxShift) return;
+        if (!results.some(q => Math.abs(q.px - p.px) < .001)) results.push(p);
+      };
+      add(base.x);
+      // L'analyse existante fournit certaines solutions exactes, dont les contacts
+      // avec l'axe des x sans changement de signe (x², abs(x), etc.).
+      if (targetY === 0) for (const x of state.visibleRoots) {
+        if (xToPx(x) >= left && xToPx(x) <= right) add(x, true, Math.abs(base.y));
+      }
+      for (const part of state.analysis.domain.set) for (const x of [part.lo, part.hi]) {
+        if (Number.isFinite(x) && xToPx(x) >= left && xToPx(x) <= right) add(x);
+      }
+      const count = Math.max(20, Math.ceil((right - left) / .4)), samples = [];
+      for (let i = 0; i <= count; i++) {
+        const px = left + (right - left) * i / count, p = probeCandidate(pxToX(px));
+        const residual = p && probeSameBranch(base.x, p.x) ? p.y - targetY : NaN;
+        samples.push({ px, p, residual });
+        if (residual === 0) add(p.x);
+      }
+      for (let i = 1; i < samples.length; i++) {
+        const a = samples[i - 1], b = samples[i];
+        if (!Number.isFinite(a.residual) || !Number.isFinite(b.residual) || !probeSameBranch(a.p.x, b.p.x)) continue;
+        if ((a.residual < 0 && b.residual > 0) || (a.residual > 0 && b.residual < 0)) {
+          let lo = a.p.x, hi = b.p.x, flo = a.residual;
+          let closest = Math.abs(a.residual) < Math.abs(b.residual) ? a.p : b.p;
+          for (let j = 0; j < 55; j++) {
+            const x = lo + (hi - lo) / 2;
+            if (x === lo || x === hi) break;
+            const p = probeCandidate(x);
+            if (!p) break;
+            const f = p.y - targetY;
+            if (Math.abs(f) < Math.abs(closest.y - targetY)) closest = p;
+            if (f === 0) { closest = p; break; }
+            if (Math.sign(f) === Math.sign(flo)) { lo = x; flo = f; } else hi = x;
+          }
+          add(closest.x, true, Math.max(Math.abs(a.residual), Math.abs(b.residual)));
+        }
+      }
+      // Un extremum peut toucher une graduation sans la traverser, comme sin(x)=1.
+      for (let i = 1; i + 1 < samples.length; i++) {
+        const a = samples[i - 1], b = samples[i], c = samples[i + 1];
+        if (![a.residual, b.residual, c.residual].every(Number.isFinite) ||
+            !(Math.abs(b.residual) < Math.abs(a.residual) && Math.abs(b.residual) < Math.abs(c.residual)) ||
+            !probeSameBranch(a.p.x, c.p.x)) continue;
+        const objective = px => {
+          const p = probeCandidate(pxToX(px));
+          return p && probeSameBranch(base.x, p.x) ? Math.abs(p.y - targetY) : Infinity;
+        };
+        const px = probeMinimize(a.px, c.px, objective, 42);
+        add(pxToX(px), true, Math.max(Math.abs(a.residual), Math.abs(c.residual)));
+      }
+      return results;
+    }
+
+    function snapProbePoint(base, mx, my, radius) {
+      const { xStep, yStep } = getGridSteps();
+      const xSpacing = xStep / (view.xMax - view.xMin) * width;
+      const ySpacing = yStep / (view.yMax - view.yMin) * height;
+      // Jamais plus de 10 % de l'intervalle entre deux graduations : le milieu reste libre.
+      const xTolerance = Math.min(PROBE_SNAP_PIXELS, xSpacing * .10);
+      const yTolerance = Math.min(PROBE_SNAP_PIXELS, ySpacing * .10);
+      const tick = (v, step) => Number((Math.round(v / step) * step).toPrecision(14));
+      const xTick = tick(base.x, xStep), yTick = tick(base.y, yStep);
+      const candidates = [], maxShift = 10;
+      const accept = (p, axis, target) => {
+        if (!p || !probeSameBranch(base.x, p.x)) return;
+        const shift = Math.hypot(p.px - base.px, p.py - base.py);
+        if (shift > maxShift || Math.hypot(p.px - mx, p.py - my) > radius ||
+            p.px < 0 || p.px > width || p.py < 0 || p.py > height) return;
+        candidates.push({ ...p, snapX: axis === 'x', snapY: axis === 'y',
+          yTarget: axis === 'y' ? target : null, score: shift });
+      };
+      if (Math.abs(base.px - xToPx(xTick)) <= xTolerance && Math.abs(mx - xToPx(xTick)) <= PROBE_RADIUS) {
+        accept(probeCandidate(xTick), 'x', xTick);
+      }
+      if (Math.abs(base.py - yToPx(yTick)) <= yTolerance && Math.abs(my - yToPx(yTick)) <= PROBE_RADIUS) {
+        for (const p of probeLevelPoints(base, yTick, maxShift)) accept(p, 'y', yTick);
+      }
+      candidates.sort((a, b) => Math.abs(a.score - b.score) < .15 ? Number(b.snapX) - Number(a.snapX) : a.score - b.score);
+      const result = candidates[0] || { ...base, snapX: false, snapY: false, yTarget: null };
+      if (result.snapX && result.y === yTick) { result.snapY = true; result.yTarget = yTick; }
+      return result;
+    }
+
+    function findProbeAtClient(clientX, clientY) {
+      if (!state || !view || width <= 0 || height <= 0) return null;
+      const rect = canvas.getBoundingClientRect();
+      const mx = clientX - rect.left - plotLeft, my = clientY - rect.top;
+      if (mx < 0 || mx > width || my < 0 || my > height) return null;
+      const radius = probeReading && !probeFrozen ? PROBE_RADIUS + 3 : PROBE_RADIUS;
+      const base = nearestProbePoint(mx, my, radius);
+      return base ? snapProbePoint(base, mx, my, radius) : null;
+    }
+
+    function probeCoordinate(value, exact = false) {
+      if (exact) {
+        const number = tableExactDecimal(tableDecimalFraction(String(value)));
+        if (number !== null) return { sign: '=', number, exact: true, text: '= ' + number };
+      }
+      const number = value.toPrecision(3).replace('e+', 'e').replace(/-/g, '−').replace('.', ',') + '…';
+      return { sign: '≈', number, exact: false, text: '≈ ' + number };
+    }
+
+    function probeLabels(p) {
+      const x = probeCoordinate(p.x, p.snapX);
+      let y = p.snapY ? probeCoordinate(p.yTarget, true) : probeCoordinate(p.y);
+      // Une abscisse accrochée est exacte ; réutiliser alors le calcul exact du tableau.
+      if (p.snapX && !p.snapY) y = formatTableResult(state.analysis.ast, p.x, p.y, true);
+      const coordinate = v => (v.exact ? '' : '≈ ') + v.number;
+      return { x, y, point: `P(${coordinate(x)} ; ${coordinate(y)})` };
+    }
+
+    function drawProbeReading(p) {
+      if (!p || !state) return;
+      const px = xToPx(p.x), py = yToPx(p.y), s = renderTextScale;
+      if (px < 0 || px > width || py < 0 || py > height) return;
+      const labels = probeLabels(p), axes = axisLabelLayout();
+      const axisX = Math.max(0, Math.min(width, xToPx(0)));
+      const axisY = Math.max(0, Math.min(height, yToPx(0)));
+      ctx.save(); ctx.strokeStyle = PROBE_COLOR; ctx.fillStyle = PROBE_COLOR;
+      ctx.lineWidth = 1.25 * s; ctx.setLineDash([6 * s, 5 * s]);
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, axisY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(axisX, py); ctx.stroke();
+      ctx.setLineDash([]);
+      const foot = (x, y, visible, vertical) => {
+        if (Math.hypot(x - px, y - py) < 5 * s) return;
+        if (visible) {
+          ctx.beginPath(); ctx.arc(x, y, 3 * s, 0, 2 * Math.PI);
+          ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.strokeStyle = PROBE_COLOR; ctx.lineWidth = 1.25 * s; ctx.stroke();
+        } else {
+          const sign = vertical ? (y < py ? -1 : 1) : (x < px ? -1 : 1);
+          ctx.beginPath(); ctx.moveTo(x, y);
+          if (vertical) { ctx.lineTo(x - 3 * s, y - sign * 6 * s); ctx.lineTo(x + 3 * s, y - sign * 6 * s); }
+          else { ctx.lineTo(x - sign * 6 * s, y - 3 * s); ctx.lineTo(x - sign * 6 * s, y + 3 * s); }
+          ctx.closePath(); ctx.fillStyle = PROBE_COLOR; ctx.fill();
+        }
+      };
+      foot(px, axisY, axes.xAxisVisible, true); foot(axisX, py, axes.yAxisVisible, false);
+      const reservePoint = (x, y, radius = 8 * s) => {
+        if (x >= 0 && x <= width && y >= 0 && y <= height) annotationBoxes.push({ x: x - radius, y: y - radius, width: 2 * radius, height: 2 * radius });
+      };
+      reservePoint(px, py, 10 * s);
+      if (document.getElementById('studyCheckbox').checked) {
+        for (const x of state.visibleRoots) reservePoint(xToPx(x), yToPx(0));
+        if (state.originInfo.defined) reservePoint(xToPx(0), yToPx(state.originInfo.y));
+      }
+      const drawGuideLabel = (text, cx, cy, vertical, short) => {
+        ctx.font = graphFont('600 11px system-ui, sans-serif');
+        const w = Math.min(width - 10, ctx.measureText(text).width + 12 * s), h = 22 * s;
+        let positions = [[cx - w / 2, cy - h / 2]];
+        if (short) positions = vertical ? [[cx + 10 * s, cy - h / 2], [cx - w - 10 * s, cy - h / 2]] :
+          [[cx - w / 2, cy + 10 * s], [cx - w / 2, cy - h - 10 * s]];
+        for (const sign of [-1, 1]) {
+          positions.push(vertical ? [cx - w / 2, cy - h / 2 + sign * (h + 8 * s)] :
+            [cx - w / 2 + sign * (w / 2 + 10 * s), cy - h / 2]);
+        }
+        let selected = null, best = Infinity;
+        positions.forEach(([x, y], index) => {
+          const r = { x: Math.max(4, Math.min(width - w - 4, x)), y: Math.max(4, Math.min(height - h - 4, y)), width: w, height: h };
+          const score = index * 2 + annotationBoxes.reduce((sum, b) => sum + (rectanglesOverlap(r, b, 3 * s) ? 1000 : 0), 0);
+          if (score < best) { best = score; selected = r; }
+        });
+        if (!selected) return;
+        annotationBoxes.push(selected);
+        roundedRect(selected.x, selected.y, w, h, 4 * s);
+        ctx.fillStyle = 'rgba(255,255,255,0.97)'; ctx.fill();
+        ctx.strokeStyle = PROBE_COLOR; ctx.lineWidth = .65 * s; ctx.stroke();
+        ctx.fillStyle = PROBE_COLOR; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(text, selected.x + w / 2, selected.y + h / 2, w - 10 * s);
+      };
+      drawGuideLabel('x ' + labels.x.text, px, (py + axisY) / 2, true, Math.abs(py - axisY) < 50 * s);
+      drawGuideLabel('y ' + labels.y.text, (px + axisX) / 2, py, false, Math.abs(px - axisX) < 100 * s);
+      // Anneau extérieur : les couleurs d'une racine ou de A restent visibles au centre.
+      const onRemarkable = document.getElementById('studyCheckbox').checked &&
+        (state.visibleRoots.some(x => Math.hypot(xToPx(x) - px, yToPx(0) - py) < 4) ||
+        (state.originInfo.defined && Math.hypot(xToPx(0) - px, yToPx(state.originInfo.y) - py) < 4));
+      ctx.beginPath(); ctx.arc(px, py, (onRemarkable ? 9 : 5.5) * s, 0, 2 * Math.PI);
+      if (!onRemarkable) { ctx.fillStyle = PROBE_COLOR; ctx.fill(); }
+      ctx.strokeStyle = onRemarkable ? PROBE_COLOR : '#ffffff'; ctx.lineWidth = 2 * s; ctx.stroke();
+      const notes = [];
+      if (probeFrozen) notes.push('Point figé');
+      if (!probeFrozen && (p.snapX || p.snapY)) notes.push(p.snapX && p.snapY ? 'Graduations x et y' : 'Graduation ' + (p.snapX ? 'x' : 'y'));
+      if (!axes.xAxisVisible || !axes.yAxisVisible) notes.push(!axes.xAxisVisible && !axes.yAxisVisible ? 'Axes hors cadre' : 'Axe ' + (!axes.xAxisVisible ? 'x' : 'y') + ' hors cadre');
+      annotation(notes.length ? [labels.point, notes.join(' · ')] : [labels.point], px, py, PROBE_COLOR, py > height / 2);
+      ctx.restore();
+    }
+
+    function renderProbeOverlay() {
+      if (isPreparingPrint || printSessionActive) return;
+      if (probeCanvas.width !== canvas.width || probeCanvas.height !== canvas.height) {
+        probeCanvas.width = canvas.width; probeCanvas.height = canvas.height;
+      }
+      const overlay = probeCanvas.getContext('2d');
+      overlay.setTransform(1, 0, 0, 1, 0, 0); overlay.clearRect(0, 0, probeCanvas.width, probeCanvas.height);
+      releaseProbeButton.hidden = !probeFrozen;
+      canvas.classList.toggle('probe-near', Boolean(probeReading) && !probeFrozen && !activePointers.size);
+      probeReadingText.textContent = probeReading ? probeLabels(probeReading).point + (probeFrozen ? '. Point figé.' : '') : '';
+      if (!probeReading || !state) return;
+      const previous = ctx, boxes = annotationBoxes;
+      try {
+        ctx = overlay;
+        ctx.setTransform(canvas.width / canvasFullWidth, 0, 0, canvas.height / canvasFullHeight, 0, 0);
+        annotationBoxes = boxes.map(b => ({ ...b }));
+        ctx.save(); ctx.translate(plotLeft, 0); ctx.beginPath(); ctx.rect(0, 0, width, height); ctx.clip();
+        drawProbeReading(probeReading);
+        ctx.restore();
+      } finally { ctx = previous; annotationBoxes = boxes; }
+    }
+
+    function refreshProbeForView() {
+      if (probeExpression !== state?.expression) {
+        probeReading = null; probeFrozen = false; probePointer = null; probeExpression = state?.expression;
+      }
+      if (probeFrozen && probeReading) {
+        const p = probeCandidate(probeReading.x);
+        if (!p) { probeReading = null; probeFrozen = false; }
+        else probeReading = { ...probeReading, ...p };
+      } else if (probePointer && !activePointers.size) {
+        probeReading = findProbeAtClient(probePointer.x, probePointer.y);
+      } else probeReading = null;
+      renderProbeOverlay();
+    }
+
+    function scheduleProbeRead() {
+      if (pendingProbeFrame || isPreparingPrint || printSessionActive) return;
+      pendingProbeFrame = requestAnimationFrame(() => {
+        pendingProbeFrame = 0;
+        refreshProbeForView();
+      });
+    }
+
+    function releaseProbe() {
+      probeFrozen = false; probeReading = null; probePointer = null;
+      renderProbeOverlay();
+    }
+
+
     // Mise en page compacte : réglages repliables et accès rapide aux trois zones.
     const compactLayout = window.matchMedia('(max-width: 899px), (max-height: 520px) and (pointer: coarse)');
     const flowingLayout = window.matchMedia('(max-width: 1199px), (max-height: 600px)');
@@ -2527,6 +3477,7 @@
     }
 
     function clearGesture() {
+      probeGestureStart = null;
       const captured = [...activePointers.keys()];
       activePointers.clear();
       gesture = null;
@@ -2536,6 +3487,7 @@
     }
 
     function adaptLayout() {
+      if (printSessionActive || isPreparingPrint) return;
       const compact = compactLayout.matches;
       if (previousCompactLayout === null || compact !== previousCompactLayout) {
         // Replier les réglages ne modifie ni la fonction ni les cases cochées.
@@ -2645,6 +3597,24 @@
         anchorY: bounds.yMax - geometry.py / height * (bounds.yMax - bounds.yMin) };
     }
 
+    releaseProbeButton.addEventListener('click', releaseProbe);
+    window.addEventListener('keydown', event => { if (event.key === 'Escape') releaseProbe(); });
+    canvas.addEventListener('pointermove', event => {
+      if (event.pointerType === 'touch' || event.buttons || activePointers.size || probeFrozen) return;
+      probePointer = { x: event.clientX, y: event.clientY };
+      scheduleProbeRead();
+    });
+    canvas.addEventListener('pointerleave', () => {
+      probePointer = null;
+      if (!probeFrozen) { probeReading = null; renderProbeOverlay(); }
+    });
+    window.addEventListener('blur', () => {
+      if (!probeFrozen) releaseProbe();
+    });
+    window.addEventListener('scroll', () => {
+      if (probePointer && !probeFrozen) scheduleProbeRead();
+    }, { passive: true, capture: true });
+
     canvas.addEventListener('pointerdown', event => {
       // En mode défilement, laisser le navigateur traiter les gestes tactiles.
       if (!state || (event.pointerType === 'touch' && !touchManipulation)) return;
@@ -2652,6 +3622,10 @@
       const rect = canvas.getBoundingClientRect();
       const px = event.clientX - rect.left - plotLeft, py = event.clientY - rect.top;
       if (px < 0 || px > width || py < 0 || py > height) return;
+      probeGestureStart = activePointers.size || event.pointerType === 'touch' ? null : {
+        id: event.pointerId, x: event.clientX, y: event.clientY,
+        point: findProbeAtClient(event.clientX, event.clientY), moved: false
+      };
       activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       rebaseGesture();
       canvas.setPointerCapture(event.pointerId);
@@ -2660,6 +3634,10 @@
 
     canvas.addEventListener('pointermove', event => {
       if (!state || !activePointers.has(event.pointerId) || !gesture) return;
+      if (probeGestureStart?.id === event.pointerId) {
+        probeGestureStart.moved ||= Math.hypot(event.clientX - probeGestureStart.x, event.clientY - probeGestureStart.y) > 4;
+        if (!probeGestureStart.moved) return; // Un clic de lecture ne décale pas la vue.
+      }
       activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       const current = pointerGeometry();
       if (current.count !== gesture.count) { rebaseGesture(); return; }
@@ -2672,7 +3650,19 @@
     });
 
     function endPointer(event) {
+      const tap = event.type === 'pointerup' && probeGestureStart?.id === event.pointerId &&
+        !probeGestureStart.moved && probeGestureStart.point &&
+        Math.hypot(event.clientX - probeGestureStart.x, event.clientY - probeGestureStart.y) <= 4;
+      const tappedPoint = tap ? probeGestureStart.point : null;
+      if (probeGestureStart?.id === event.pointerId) probeGestureStart = null;
       if (!activePointers.delete(event.pointerId)) return;
+      if (tappedPoint) {
+        probeFrozen = !probeFrozen; probeReading = tappedPoint;
+        probePointer = { x: event.clientX, y: event.clientY };
+        renderProbeOverlay();
+      } else if (event.pointerType !== 'touch' && event.type === 'pointerup' && !probeFrozen) {
+        probePointer = { x: event.clientX, y: event.clientY }; scheduleProbeRead();
+      }
       try { if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); } catch {}
       rebaseGesture();
     }
@@ -2699,9 +3689,11 @@
 
     let pendingLayoutResize = 0;
     function scheduleCanvasResize() {
+      if (printSessionActive || isPreparingPrint) return;
       if (pendingLayoutResize) return;
       pendingLayoutResize = requestAnimationFrame(() => {
         pendingLayoutResize = 0;
+        if (printSessionActive || isPreparingPrint) return;
         const rect = canvas.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
         if (rect.width > 0 && rect.height > 0 && (
@@ -2721,8 +3713,14 @@
       const graphResizeObserver = new ResizeObserver(scheduleCanvasResize);
       graphResizeObserver.observe(canvas.parentElement);
     }
-    window.addEventListener("beforeprint", preparePrint);
-    window.addEventListener("afterprint", () => requestAnimationFrame(resizeCanvas));
+    window.addEventListener('beforeprint', () => {
+      printSessionActive = true;
+      try { preparePrint(); } catch (error) { console.error(error); }
+    });
+    window.addEventListener('afterprint', () => {
+      printSessionActive = false;
+      requestAnimationFrame(() => { adaptLayout(); resizeCanvas(); });
+    });
 
     adaptLayout();
     equalScaleHint.hidden = !equalScaleCheckbox.checked;
